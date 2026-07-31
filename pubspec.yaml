@@ -1,0 +1,49 @@
+name: digital_khata
+description: "digital_khata clone"
+
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.8.1 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  flutter_localizations:
+    sdk: flutter
+
+  go_router: ^16.2.1
+  intl: ^0.20.2
+  shared_preferences: ^2.5.3
+  equatable: ^2.0.5
+
+  # Supabase
+  supabase_flutter: ^2.8.0
+
+  # State management (used by suppliers/accounts/ledger screens)
+  flutter_riverpod: ^2.6.1
+
+  # Utilities
+  image_picker: ^1.2.0
+  http: ^1.4.0
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  generate: true
+
+  assets:
+    - assets/images/
+
+  fonts:
+    - family: Kalimati
+      fonts:
+        - asset: assets/fonts/Kalimati.otf
