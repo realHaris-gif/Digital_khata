@@ -1,197 +1,124 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
-// Controllers & Auth
-import 'package:digital_khata/controller/auth.dart';
-import 'package:digital_khata/controller/toggle_login_signup.dart';
-
-// Core Content Screens
+import 'package:digital_khata/models/product_model.dart';
+import 'package:digital_khata/screens/auth/login_screen.dart';
 import 'package:digital_khata/screens/content/home/home_screen.dart';
-import 'package:digital_khata/screens/content/people/list_people_screen.dart';
-import 'package:digital_khata/screens/content/expense/analytics_screen.dart';
-import 'package:digital_khata/screens/content/expense/expense_screen.dart';
-import 'package:digital_khata/screens/customer/customer_screen.dart';
 
-// Phase 2 Module Screens (Suppliers, Accounts, Unified Ledger)
-import 'package:digital_khata/screens/content/supplier/suppliers_screen.dart';
-import 'package:digital_khata/screens/content/supplier/add_supplier_screen.dart';
-import 'package:digital_khata/screens/content/supplier/supplier_detail_screen.dart';
+
+import 'package:digital_khata/screens/content/inventory/inventory_dashboard_screen.dart';
+import 'package:digital_khata/screens/content/inventory/products_list_screen.dart';
+import 'package:digital_khata/screens/content/inventory/product_detail_screen.dart';
+import 'package:digital_khata/screens/content/inventory/add_edit_product_screen.dart';
+import 'package:digital_khata/screens/content/inventory/categories_screen.dart';
+import 'package:digital_khata/screens/content/inventory/inventory_analytics_screen.dart';
+
+
 import 'package:digital_khata/screens/content/account/accounts_screen.dart';
-import 'package:digital_khata/screens/content/account/add_account_screen.dart';
 import 'package:digital_khata/screens/content/account/account_detail_screen.dart';
+import 'package:digital_khata/screens/content/account/add_account_screen.dart';
+
+// Expense, Supplier & Ledger Screens
+import 'package:digital_khata/screens/content/expense/expense_screen.dart';
+import 'package:digital_khata/screens/content/supplier/suppliers_screen.dart';
 import 'package:digital_khata/screens/content/ledger/unified_ledger_screen.dart';
 
 class AppRouter {
-  static final GoRouter router = GoRouter(
+  static final router = GoRouter(
     initialLocation: '/',
+    redirect: (context, state) {
+      final session = Supabase.instance.client.auth.currentSession;
+      final isLoggingIn = state.uri.toString() == '/login';
+
+      if (session == null && !isLoggingIn) {
+        return '/login';
+      }
+      if (session != null && isLoggingIn) {
+        return '/';
+      }
+      return null;
+    },
     routes: [
-      // 1. Root / Auth Check Route
+      GoRoute(
+  path: '/login',
+  builder: (context, state) => LoginScreen(
+    onTap: () {},
+    onCustomerTap: () {},
+  ),
+),
       GoRoute(
         path: '/',
-        builder: (BuildContext context, GoRouterState state) {
-          return const AuthController();
-        },
+        builder: (context, state) => const HomeScreen(),
       ),
 
-      // 2. Auth Flow
+      // =========================================================
+      // PHASE 3: STOCK BOOK (INVENTORY MANAGEMENT) ROUTES
+      // =========================================================
       GoRoute(
-        path: '/toggle_login_signup_screen',
-        builder: (BuildContext context, GoRouterState state) {
-          return const ToggleLoginSignup();
+        path: '/inventory',
+        builder: (context, state) => const InventoryDashboardScreen(),
+      ),
+      GoRoute(
+        path: '/inventory/products',
+        builder: (context, state) => const ProductsListScreen(),
+      ),
+      GoRoute(
+        path: '/inventory/product/:id',
+        builder: (context, state) {
+          final productId = state.pathParameters['id'] ?? '';
+          return ProductDetailScreen(productId: productId);
         },
+      ),
+      GoRoute(
+        path: '/inventory/add-product',
+        builder: (context, state) {
+          final productToEdit = state.extra as Product?;
+          return AddEditProductScreen(productToEdit: productToEdit);
+        },
+      ),
+      GoRoute(
+        path: '/inventory/categories',
+        builder: (context, state) => const CategoriesScreen(),
+      ),
+      GoRoute(
+        path: '/inventory/analytics',
+        builder: (context, state) => const InventoryAnalyticsScreen(),
       ),
 
-      // 3. Core App Home & Dashboard
-      GoRoute(
-        path: '/home_screen',
-        builder: (BuildContext context, GoRouterState state) {
-          return const HomeScreen();
-        },
-      ),
-      GoRoute(
-        path: '/dashboard',
-        builder: (BuildContext context, GoRouterState state) {
-          return const HomeScreen();
-        },
-      ),
-
-      // 4. Customers Module
-      GoRoute(
-        path: '/list_people_screen',
-        builder: (BuildContext context, GoRouterState state) {
-          return const ListPeopleScreen();
-        },
-      ),
-      GoRoute(
-        path: '/customers',
-        builder: (BuildContext context, GoRouterState state) {
-          return const ListPeopleScreen();
-        },
-      ),
-      GoRoute(
-        path: '/customer/:customerId',
-        builder: (BuildContext context, GoRouterState state) {
-          final customerId = state.pathParameters['customerId'] ?? '';
-          final extra = state.extra;
-          String customerName = 'Customer';
-          String? customerPhone;
-          if (extra is Map) {
-            customerName = extra['name']?.toString() ?? customerName;
-            customerPhone = extra['phone']?.toString();
-          } else {
-            customerName =
-                state.uri.queryParameters['name'] ?? customerName;
-            customerPhone = state.uri.queryParameters['phone'];
-          }
-          return CustomerDetailScreen(
-            customerId: customerId,
-            customerName: customerName,
-            customerPhone: customerPhone,
-          );
-        },
-      ),
-
-      // 5. Suppliers Module (Phase 2)
-      GoRoute(
-        path: '/suppliers',
-        builder: (BuildContext context, GoRouterState state) {
-          return const SuppliersScreen();
-        },
-      ),
-      GoRoute(
-        path: '/add-supplier',
-        builder: (BuildContext context, GoRouterState state) {
-          return const AddEditSupplierScreen();
-        },
-      ),
-      GoRoute(
-        path: '/edit-supplier/:supplierId',
-        builder: (BuildContext context, GoRouterState state) {
-          final supplierId = state.pathParameters['supplierId'];
-          return AddEditSupplierScreen(
-            supplierId: supplierId,
-          );
-        },
-      ),
-      GoRoute(
-        path: '/supplier/:supplierId',
-        builder: (BuildContext context, GoRouterState state) {
-          final supplierId = state.pathParameters['supplierId'] ?? '';
-          return SupplierDetailScreen(
-            supplierId: supplierId,
-          );
-        },
-      ),
-
-      // 6. Cash & Bank Accounts Module (Phase 2)
+      // =========================================================
+      // ACCOUNTS & OTHER MODULE ROUTES
+      // =========================================================
       GoRoute(
         path: '/accounts',
-        builder: (BuildContext context, GoRouterState state) {
-          return const AccountsScreen();
-        },
+        builder: (context, state) => const AccountsScreen(),
       ),
       GoRoute(
         path: '/add-account',
-        builder: (BuildContext context, GoRouterState state) {
-          return const AddEditAccountScreen();
+        builder: (context, state) {
+          final accountId = state.extra as String?;
+          return AddEditAccountScreen(accountId: accountId);
         },
       ),
       GoRoute(
-        path: '/edit-account/:accountId',
-        builder: (BuildContext context, GoRouterState state) {
-          final accountId = state.pathParameters['accountId'];
-          return AddEditAccountScreen(
-            accountId: accountId,
-          );
-        },
-      ),
-      GoRoute(
-        path: '/account/:accountId',
-        builder: (BuildContext context, GoRouterState state) {
-          final accountId = state.pathParameters['accountId'] ?? '';
-          return AccountDetailScreen(
-            accountId: accountId,
-          );
-        },
-      ),
-
-      // 7. Unified Party Ledger (Phase 2)
-      GoRoute(
-        path: '/ledger',
-        builder: (BuildContext context, GoRouterState state) {
-          return const UnifiedLedgerScreen();
-        },
-      ),
-
-      // 8. Analytics & Expenses
-      GoRoute(
-        path: '/analytics_screen',
-        builder: (BuildContext context, GoRouterState state) {
-          return const AnalyticsScreen();
+        path: '/account/:id',
+        builder: (context, state) {
+          final accountId = state.pathParameters['id'] ?? '';
+          return AccountDetailScreen(accountId: accountId);
         },
       ),
       GoRoute(
         path: '/expense_screen',
-        builder: (BuildContext context, GoRouterState state) {
-          return const ExpenseScreen();
-        },
+        builder: (context, state) => const ExpenseScreen(),
+      ),
+      GoRoute(
+        path: '/suppliers',
+        builder: (context, state) => const SuppliersScreen(),
+      ),
+      GoRoute(
+        path: '/ledger',
+        builder: (context, state) => const UnifiedLedgerScreen(),
       ),
     ],
-    errorBuilder: (BuildContext context, GoRouterState state) => Scaffold(
-      appBar: AppBar(title: const Text('Error')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            Text(
-              'Page not found: ${state.error}',
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    ),
   );
 }

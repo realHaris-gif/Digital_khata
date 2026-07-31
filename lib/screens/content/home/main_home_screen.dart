@@ -1,5 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+
 import 'package:digital_khata/controller/language_controller.dart';
 import 'package:digital_khata/helper/helper_function.dart';
 import 'package:digital_khata/l10n/app_localizations.dart';
@@ -156,7 +158,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
             ),
             const SizedBox(height: 20),
 
-            // Main Total Due Card (Restored Original Emerald/Teal Gradient Theme)
+            // Main Total Due Card (Original Emerald/Teal Gradient Theme)
             if (searchQuery.isEmpty)
               StreamBuilder<List<Map<String, dynamic>>>(
                 stream: _databaseService.peopleStream,
@@ -308,11 +310,28 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
 
             const SizedBox(height: 20),
 
-            // Quick Actions Horizontal Navigation (Matches your original button theme)
+            // Quick Actions Horizontal Navigation (Using GoRouter context.push)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
                 children: [
+                  // Phase 3 Stock Book Navigation
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      backgroundColor: Colors.teal.shade700,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => context.push('/inventory'),
+                    icon: const Icon(Icons.inventory_2_outlined, color: Colors.white),
+                    label: const Text(
+                      'Stock Book',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -321,7 +340,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () => Navigator.pushNamed(context, '/analytics_screen'),
+                    onPressed: () => context.push('/inventory/analytics'),
                     icon: const Icon(Icons.analytics, color: Colors.white),
                     label: Text(
                       l10n.analytics,
@@ -337,7 +356,7 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () => Navigator.pushNamed(context, '/expense_screen'),
+                    onPressed: () => context.push('/expense_screen'),
                     icon: const Icon(Icons.receipt_long, color: Colors.white),
                     label: Text(
                       l10n.expenses,
@@ -353,26 +372,10 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: () => Navigator.pushNamed(context, '/suppliers'),
+                    onPressed: () => context.push('/suppliers'),
                     icon: const Icon(Icons.business, color: Colors.white),
                     label: Text(
                       l10n.suppliers,
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      backgroundColor: Theme.of(context).colorScheme.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: () => Navigator.pushNamed(context, '/accounts'),
-                    icon: const Icon(Icons.account_balance, color: Colors.white),
-                    label: Text(
-                      l10n.accounts,
                       style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                     ),
                   ),
@@ -392,17 +395,6 @@ class _MainHomeScreenState extends State<MainHomeScreen> {
                     fontSize: 16,
                     color: Theme.of(context).colorScheme.onSurface,
                     fontWeight: FontWeight.w800,
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/list_people_screen'),
-                  child: Text(
-                    "View All ▼",
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Theme.of(context).colorScheme.outline,
-                      fontWeight: FontWeight.w400,
-                    ),
                   ),
                 ),
               ],
