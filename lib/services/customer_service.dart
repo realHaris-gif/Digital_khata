@@ -24,6 +24,22 @@ class CustomerService {
   /// Instance wrapper for customers stream
   Stream<List<Map<String, dynamic>>> get stream => customersStream;
 
+  /// Fetch all customers ordered alphabetically (Static)
+  static Future<List<Map<String, dynamic>>> getCustomersAlphabetically() async {
+    _checkAuth();
+    final response = await _client
+        .from('customers')
+        .select('id, name, phone, unique_id')
+        .eq('created_by', _userId!)
+        .order('name', ascending: true);
+
+    return List<Map<String, dynamic>>.from(response as List);
+  }
+
+  /// Instance wrapper for fetching customers alphabetically
+  Future<List<Map<String, dynamic>>> getCustomersAlphabeticallyInstance() =>
+      getCustomersAlphabetically();
+
   /// Find a customer by their unique ID (Static)
   static Future<Map<String, dynamic>?> findCustomerByUniqueId(String uniqueId) async {
     try {
@@ -157,18 +173,16 @@ class CustomerService {
         totalExpenses += (exp['amount'] as num?)?.toDouble() ?? 0.0;
       }
 
-      // ACCURATE ACCOUNTING LOGIC:
-      // Customer Due (Receivable) = Money Given - Money Received
       final double totalDue = totalGiven - totalReceived;
       final double netBalance = totalDue + totalExpenses;
 
       return {
         'totalGiven': totalGiven,
         'totalReceived': totalReceived,
-        'totalPaid': totalReceived, // Alias key for UI compatibility
+        'totalPaid': totalReceived,
         'totalExpenses': totalExpenses,
         'totalDue': totalDue,
-        'netDue': totalDue,         // Alias key for UI compatibility
+        'netDue': totalDue,
         'netBalance': netBalance,
       };
     } catch (e) {
@@ -185,11 +199,9 @@ class CustomerService {
     }
   }
 
-  /// Get Customer Summary (Static alias to getCustomerTotals)
   static Future<Map<String, double>> getCustomerSummary(String customerId) =>
       getCustomerTotals(customerId);
 
-  /// Get merged chronological timeline of transactions and expenses (Static)
   static Future<List<Map<String, dynamic>>> getCustomerTimeline(String customerId) async {
     try {
       final transactionsFuture = _client
@@ -244,7 +256,7 @@ class CustomerService {
   }
 
   // ===========================================================================
-  // INSTANCE DELEGATE METHODS (Enables `_customerService.method()` calls seamlessly)
+  // INSTANCE DELEGATE METHODS
   // ===========================================================================
 
   Future<Map<String, dynamic>> addCustomerInstance({

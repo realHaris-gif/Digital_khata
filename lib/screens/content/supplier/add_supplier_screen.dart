@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:digital_khata/l10n/app_localizations.dart';
 import 'package:digital_khata/services/supplier_service.dart';
+import 'package:digital_khata/widgets/forms/form_widgets.dart';
 
 class AddEditSupplierScreen extends ConsumerStatefulWidget {
   final String? supplierId;
@@ -24,8 +25,9 @@ class _AddEditSupplierScreenState extends ConsumerState<AddEditSupplierScreen> {
   late TextEditingController _addressController;
   late TextEditingController _notesController;
   late TextEditingController _openingBalanceController;
-  
+
   bool _isLoading = false;
+  bool _isSaving = false;
   final SupabaseClient _supabase = Supabase.instance.client;
 
   @override
@@ -71,8 +73,10 @@ class _AddEditSupplierScreenState extends ConsumerState<AddEditSupplierScreen> {
     } catch (e) {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.error}: $e')),
+        showFormSnackBar(
+          context,
+          message: '${l10n.error}: $e',
+          isError: true,
         );
       }
     } finally {
@@ -86,13 +90,15 @@ class _AddEditSupplierScreenState extends ConsumerState<AddEditSupplierScreen> {
     final l10n = AppLocalizations.of(context)!;
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.pleaseEnterName)),
+      showFormSnackBar(
+        context,
+        message: l10n.pleaseEnterName,
+        isError: true,
       );
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _isSaving = true);
 
     try {
       final repository = SupplierRepository(_supabase);
@@ -110,9 +116,15 @@ class _AddEditSupplierScreenState extends ConsumerState<AddEditSupplierScreen> {
         await repository.createSupplier(
           userId: userId,
           name: name,
-          phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
-          address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-          notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+          phone: _phoneController.text.trim().isEmpty
+              ? null
+              : _phoneController.text.trim(),
+          address: _addressController.text.trim().isEmpty
+              ? null
+              : _addressController.text.trim(),
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
           openingBalance: openingBalance,
         );
       } else {
@@ -120,20 +132,25 @@ class _AddEditSupplierScreenState extends ConsumerState<AddEditSupplierScreen> {
         await repository.updateSupplier(
           widget.supplierId!,
           name: name,
-          phone: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
-          address: _addressController.text.trim().isEmpty ? null : _addressController.text.trim(),
-          notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
+          phone: _phoneController.text.trim().isEmpty
+              ? null
+              : _phoneController.text.trim(),
+          address: _addressController.text.trim().isEmpty
+              ? null
+              : _addressController.text.trim(),
+          notes: _notesController.text.trim().isEmpty
+              ? null
+              : _notesController.text.trim(),
           openingBalance: openingBalance,
         );
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.supplierId == null
-                ? l10n.supplierAdded
-                : l10n.supplierUpdated),
-          ),
+        showFormSnackBar(
+          context,
+          message: widget.supplierId == null
+              ? l10n.supplierAdded
+              : l10n.supplierUpdated,
         );
         if (Navigator.canPop(context)) {
           Navigator.pop(context, true);
@@ -143,13 +160,15 @@ class _AddEditSupplierScreenState extends ConsumerState<AddEditSupplierScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.error}: $e')),
+        showFormSnackBar(
+          context,
+          message: '${l10n.error}: $e',
+          isError: true,
         );
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() => _isSaving = false);
       }
     }
   }
@@ -159,116 +178,98 @@ class _AddEditSupplierScreenState extends ConsumerState<AddEditSupplierScreen> {
     final l10n = AppLocalizations.of(context)!;
     final isEditing = widget.supplierId != null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? l10n.editSupplier : l10n.addSupplier),
-        centerTitle: true,
-        elevation: 0,
+    return FormScaffold(
+      appBar: formAppBar(
+        context,
+        title: isEditing ? l10n.editSupplier : l10n.addSupplier,
+        subtitle: isEditing
+            ? 'Update supplier information'
+            : 'Add a new supplier to your business',
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      isLoading: _isLoading,
+      bottomBar: FormBottomBar(
+        primaryLabel: isEditing ? l10n.update : l10n.save,
+        primaryIcon: Icons.check_rounded,
+        isLoading: _isSaving,
+        onPrimary: _isSaving ? null : _saveSupplier,
+        secondaryLabel: 'Cancel',
+        onSecondary: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            context.pop();
+          }
+        },
+      ),
+      children: [
+        FormSectionCard(
+          title: 'Supplier details',
+          subtitle: 'Name and contact information',
+          icon: Icons.storefront_outlined,
           children: [
-            // Name field
-            TextField(
+            AppFormTextField(
               controller: _nameController,
-              decoration: InputDecoration(
-                labelText: l10n.name,
-                hintText: 'e.g., ABC Suppliers',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.business),
-              ),
+              autofocus: true,
+              labelText: l10n.name,
+              hintText: 'e.g., ABC Suppliers',
+              prefixIcon: Icons.business_outlined,
+              textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: 16),
-
-            // Phone field
-            TextField(
+            AppFormTextField(
               controller: _phoneController,
-              decoration: InputDecoration(
-                labelText: l10n.phone,
-                hintText: '+92 300 1234567',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.phone),
-              ),
+              labelText: l10n.phone,
+              hintText: '+92 300 1234567',
+              prefixIcon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
               textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: 16),
-
-            // Address field
-            TextField(
+            AppFormTextField(
               controller: _addressController,
-              decoration: InputDecoration(
-                labelText: l10n.address,
-                hintText: 'Street address',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.location_on),
-              ),
+              labelText: l10n.address,
+              hintText: 'Street address',
+              prefixIcon: Icons.location_on_outlined,
               maxLines: 2,
+              textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: 16),
-
-            // Opening balance field
-            TextField(
+          ],
+        ),
+        FormSectionCard(
+          title: 'Financial',
+          subtitle: 'Opening balance for this supplier',
+          icon: Icons.account_balance_outlined,
+          children: [
+            AppFormTextField(
               controller: _openingBalanceController,
-              decoration: InputDecoration(
-                labelText: l10n.openingBalance,
-                hintText: '0.00',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.account_balance),
-              ),
+              labelText: l10n.openingBalance,
+              hintText: '0.00',
+              prefixIcon: Icons.payments_outlined,
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
               textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: 16),
-
-            // Notes field
-            TextField(
+          ],
+        ),
+        FormSectionCard(
+          title: 'Notes',
+          subtitle: 'Optional remarks',
+          icon: Icons.notes_outlined,
+          children: [
+            AppFormTextField(
               controller: _notesController,
-              decoration: InputDecoration(
-                labelText: l10n.notes,
-                hintText: 'Add notes...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.note),
-              ),
+              labelText: l10n.notes,
+              hintText: 'Add notes...',
+              prefixIcon: Icons.sticky_note_2_outlined,
               maxLines: 3,
-            ),
-            const SizedBox(height: 24),
-
-            // Save button
-            ElevatedButton(
-              onPressed: _isLoading ? null : _saveSupplier,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(isEditing ? l10n.update : l10n.save),
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _saveSupplier(),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../services/customer_service.dart';
+import '../../../widgets/forms/form_widgets.dart';
 
 class AddPeopleScreen extends StatefulWidget {
   const AddPeopleScreen({Key? key}) : super(key: key);
@@ -10,7 +11,7 @@ class AddPeopleScreen extends StatefulWidget {
 
 class _AddPeopleScreenState extends State<AddPeopleScreen> {
   final _formKey = GlobalKey<FormState>();
-  final CustomerService _customerService = CustomerService();
+  final _nameFocus = FocusNode();
 
   String _name = '';
   String _phone = '';
@@ -18,6 +19,12 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
   String _address = '';
   String _notes = '';
   bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _nameFocus.dispose();
+    super.dispose();
+  }
 
   void _saveCustomer() async {
     if (_formKey.currentState!.validate()) {
@@ -34,15 +41,18 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
         );
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Customer added successfully!')),
+          showFormSnackBar(
+            context,
+            message: 'Customer added successfully!',
           );
           Navigator.pop(context);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to add customer: $e')),
+          showFormSnackBar(
+            context,
+            message: 'Failed to add customer: $e',
+            isError: true,
           );
         }
       } finally {
@@ -50,82 +60,104 @@ class _AddPeopleScreenState extends State<AddPeopleScreen> {
       }
     }
   }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Add New Customer')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
+    return FormScaffold(
+      appBar: formAppBar(
+        context,
+        title: 'Add New Customer',
+        subtitle: 'Create a customer profile for your ledger',
+      ),
+      bottomBar: FormBottomBar(
+        primaryLabel: 'Save Customer',
+        primaryIcon: Icons.check_rounded,
+        isLoading: _isLoading,
+        onPrimary: _isLoading ? null : _saveCustomer,
+        secondaryLabel: 'Cancel',
+        onSecondary: () => Navigator.maybePop(context),
+      ),
+      children: [
+        Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Customer Name *',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.person),
-                ),
-                validator: (val) =>
-                    val == null || val.trim().isEmpty ? 'Please enter name' : null,
-                onSaved: (val) => _name = val!.trim(),
+              FormSectionCard(
+                title: 'Basic details',
+                subtitle: 'Name and contact information',
+                icon: Icons.person_outline_rounded,
+                children: [
+                  AppFormTextField(
+                    focusNode: _nameFocus,
+                    autofocus: true,
+                    labelText: 'Customer Name *',
+                    hintText: 'e.g. Ahmed Traders',
+                    prefixIcon: Icons.badge_outlined,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.next,
+                    validator: (val) => val == null || val.trim().isEmpty
+                        ? 'Please enter name'
+                        : null,
+                    onSaved: (val) => _name = val!.trim(),
+                  ),
+                  AppFormTextField(
+                    labelText: 'Phone Number',
+                    hintText: '+92 300 1234567',
+                    prefixIcon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    textInputAction: TextInputAction.next,
+                    onSaved: (val) => _phone = val?.trim() ?? '',
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Phone Number',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.phone),
-                ),
-                keyboardType: TextInputType.phone,
-                onSaved: (val) => _phone = val?.trim() ?? '',
+              FormSectionCard(
+                title: 'Account & location',
+                subtitle: 'Opening balance and address',
+                icon: Icons.account_balance_wallet_outlined,
+                children: [
+                  AppFormTextField(
+                    labelText: 'Opening Balance (Rs.)',
+                    hintText: '0.00',
+                    prefixIcon: Icons.payments_outlined,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    textInputAction: TextInputAction.next,
+                    onSaved: (val) =>
+                        _openingBalance = double.tryParse(val ?? '0') ?? 0.0,
+                  ),
+                  AppFormTextField(
+                    labelText: 'Address',
+                    hintText: 'Street, city',
+                    prefixIcon: Icons.location_on_outlined,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.next,
+                    onSaved: (val) => _address = val?.trim() ?? '',
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Opening Balance (Rs.)',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.account_balance_wallet),
-                ),
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                onSaved: (val) =>
-                    _openingBalance = double.tryParse(val ?? '0') ?? 0.0,
+              FormSectionCard(
+                title: 'Additional notes',
+                subtitle: 'Optional remarks for this customer',
+                icon: Icons.notes_outlined,
+                children: [
+                  AppFormTextField(
+                    labelText: 'Notes',
+                    hintText: 'Any extra details…',
+                    prefixIcon: Icons.sticky_note_2_outlined,
+                    maxLines: 3,
+                    textCapitalization: TextCapitalization.sentences,
+                    textInputAction: TextInputAction.done,
+                    onSaved: (val) => _notes = val?.trim() ?? '',
+                    onFieldSubmitted: (_) => _saveCustomer(),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Address',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.location_on),
-                ),
-                onSaved: (val) => _address = val?.trim() ?? '',
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.note),
-                ),
-                maxLines: 2,
-                onSaved: (val) => _notes = val?.trim() ?? '',
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _saveCustomer,
-                  child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text('Save Customer'),
-                ),
-              ),
+              const SizedBox(height: 8),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
-  
 }

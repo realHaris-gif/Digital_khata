@@ -1,9 +1,11 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+
 import 'package:digital_khata/screens/content/home/main_home_screen.dart';
 import 'package:digital_khata/screens/content/people/add_people_screen.dart';
 import 'package:digital_khata/screens/content/people/list_people_screen.dart';
+import 'package:digital_khata/widgets/app_sidebar.dart';
 import '../../content/expense/analytics_screen.dart';
 import '../../content/expense/expense_screen.dart';
 
@@ -16,25 +18,33 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int index = 0;
+  late PageController _pageController;
 
-  // Refresh data on pull to refresh
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: index);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Future<void> _refreshData() async {
     setState(() {});
   }
 
-  Widget _getSelectedScreen(int currentIdx) {
-    switch (currentIdx) {
-      case 0:
-        return const MainHomeScreen();
-      case 1:
-        return const ListPeopleScreen();
-      case 2:
-        return const AnalyticsScreen();
-      case 3:
-        return const ExpenseScreen();
-      default:
-        return const MainHomeScreen();
-    }
+  void _onTabTapped(int newIndex) {
+    setState(() {
+      index = newIndex;
+    });
+    _pageController.animateToPage(
+      newIndex,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -45,14 +55,23 @@ class _HomeScreenState extends State<HomeScreen> {
     return RefreshIndicator(
       onRefresh: _refreshData,
       child: Scaffold(
-        extendBody: true, // Crucial: Content flows behind glass dock for realistic blur
-        body: IndexedStack(
-          index: index,
-          children: [
-            _getSelectedScreen(0),
-            _getSelectedScreen(1),
-            _getSelectedScreen(2),
-            _getSelectedScreen(3),
+        drawer: const Drawer(
+          child: AppSidebar(),
+        ),
+        extendBody: true,
+        body: PageView(
+          controller: _pageController,
+          physics: const NeverScrollableScrollPhysics(), // Managed via tab bar
+          onPageChanged: (page) {
+            setState(() {
+              index = page;
+            });
+          },
+          children: const [
+            MainHomeScreen(),
+            ListPeopleScreen(),
+            AnalyticsScreen(),
+            ExpenseScreen(),
           ],
         ),
         bottomNavigationBar: SafeArea(
@@ -63,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
               borderRadius: BorderRadius.circular(34),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
+                  color: Colors.black.withValues(alpha: 0.12),
                   blurRadius: 24,
                   spreadRadius: 2,
                   offset: const Offset(0, 8),
@@ -78,25 +97,23 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(34),
-                    // Translucent glass gradient
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: isDark
                           ? [
-                              Colors.white.withOpacity(0.14),
-                              Colors.white.withOpacity(0.04),
+                              Colors.white.withValues(alpha: 0.14),
+                              Colors.white.withValues(alpha: 0.04),
                             ]
                           : [
-                              Colors.white.withOpacity(0.78),
-                              Colors.white.withOpacity(0.42),
+                              Colors.white.withValues(alpha: 0.78),
+                              Colors.white.withValues(alpha: 0.42),
                             ],
                     ),
-                    // Subtle light-reflecting specular rim
                     border: Border.all(
                       color: isDark
-                          ? Colors.white.withOpacity(0.2)
-                          : Colors.white.withOpacity(0.65),
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : Colors.white.withValues(alpha: 0.65),
                       width: 1.2,
                     ),
                   ),
@@ -113,7 +130,6 @@ class _HomeScreenState extends State<HomeScreen> {
                         icon: Icons.people_alt_rounded,
                         label: 'People',
                       ),
-                      // Gap space for center FAB alignment balance
                       const SizedBox(width: 48),
                       _buildNavItem(
                         tabIndex: 2,
@@ -161,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: primaryColor.withOpacity(0.4),
+                    color: primaryColor.withValues(alpha: 0.4),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
@@ -182,14 +198,11 @@ class _HomeScreenState extends State<HomeScreen> {
   }) {
     final isSelected = index == tabIndex;
     final primaryColor = Theme.of(context).colorScheme.primary;
-    final inactiveColor = Theme.of(context).colorScheme.onSurface.withOpacity(0.5);
+    final inactiveColor =
+        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
 
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          index = tabIndex;
-        });
-      },
+      onTap: () => _onTabTapped(tabIndex),
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 220),
@@ -197,10 +210,10 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: isSelected
             ? BoxDecoration(
-                color: primaryColor.withOpacity(0.14),
+                color: primaryColor.withValues(alpha: 0.14),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: primaryColor.withOpacity(0.25),
+                  color: primaryColor.withValues(alpha: 0.25),
                   width: 1,
                 ),
               )

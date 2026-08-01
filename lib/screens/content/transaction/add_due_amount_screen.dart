@@ -1,7 +1,7 @@
 import 'package:digital_khata/components/my_button.dart';
-import 'package:digital_khata/components/my_text_field.dart';
 import 'package:digital_khata/services/customer_service.dart';
 import 'package:digital_khata/services/services.dart';
+import 'package:digital_khata/widgets/forms/form_widgets.dart';
 import 'package:flutter/material.dart';
 
 class AddDueAmountScreen extends StatefulWidget {
@@ -70,8 +70,10 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
     final price = double.tryParse(priceController.text.trim()) ?? 0.0;
 
     if (item.isEmpty || price <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter valid item name and price')),
+      showFormSnackBar(
+        context,
+        message: 'Please enter valid item name and price',
+        isError: true,
       );
       return;
     }
@@ -84,15 +86,18 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
 
       if (mounted) {
         Navigator.pop(context); // Close dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Due item added successfully')),
+        showFormSnackBar(
+          context,
+          message: 'Due item added successfully',
         );
       }
       await _loadTotals();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error adding due item: $e')),
+        showFormSnackBar(
+          context,
+          message: 'Error adding due item: $e',
+          isError: true,
         );
       }
     }
@@ -103,15 +108,12 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
     final description = paymentDescriptionController.text.trim();
 
     if (amount <= 0 || amount > _netDue) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            amount <= 0
-                ? 'Enter a valid amount'
-                : 'Payment cannot exceed net due amount (Rs. ${_netDue.toStringAsFixed(2)})',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      showFormSnackBar(
+        context,
+        message: amount <= 0
+            ? 'Enter a valid amount'
+            : 'Payment cannot exceed net due amount (Rs. ${_netDue.toStringAsFixed(2)})',
+        isError: true,
       );
       return;
     }
@@ -124,15 +126,18 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
 
       if (mounted) {
         Navigator.pop(context); // Close dialog
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Payment recorded successfully')),
+        showFormSnackBar(
+          context,
+          message: 'Payment recorded successfully',
         );
       }
       await _loadTotals();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error recording payment: $e')),
+        showFormSnackBar(
+          context,
+          message: 'Error recording payment: $e',
+          isError: true,
         );
       }
     }
@@ -142,37 +147,42 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppFormTokens.radiusLg),
+        ),
         title: const Text('Clear / Record Payment'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(
+            AppFormTextField(
               controller: paymentController,
-              decoration: InputDecoration(
-                labelText: 'Amount (Max: Rs. ${_netDue.toStringAsFixed(2)})',
-                prefixText: 'Rs. ',
-                border: const OutlineInputBorder(),
-              ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              autofocus: true,
+              labelText: 'Amount (Max: Rs. ${_netDue.toStringAsFixed(2)})',
+              prefixText: 'Rs. ',
+              prefixIcon: Icons.payments_outlined,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: 16),
-            TextField(
+            const SizedBox(height: 12),
+            AppFormTextField(
               controller: paymentDescriptionController,
-              decoration: const InputDecoration(
-                labelText: 'Description (Optional)',
-                border: OutlineInputBorder(),
-              ),
+              labelText: 'Description (Optional)',
+              prefixIcon: Icons.notes_outlined,
+              textCapitalization: TextCapitalization.sentences,
+              textInputAction: TextInputAction.done,
             ),
           ],
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
+          FormSecondaryButton(
+            label: 'Cancel',
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FormPrimaryButton(
+            label: 'Record Payment',
             onPressed: addPayment,
-            child: const Text('Record Payment'),
           ),
         ],
       ),
@@ -183,40 +193,52 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppFormTokens.radiusLg),
+        ),
         title: const Text('Add Due Item'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            MyTextField(
+            AppFormTextField(
               controller: itemController,
-              hintText: 'Item Name',
-              obscureText: false,
+              autofocus: true,
+              labelText: 'Item Name',
+              hintText: 'What was given?',
+              prefixIcon: Icons.shopping_bag_outlined,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
-            TextField(
+            AppFormTextField(
               controller: priceController,
-              decoration: const InputDecoration(
-                labelText: 'Price / Amount',
-                prefixText: 'Rs. ',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              labelText: 'Price / Amount',
+              prefixText: 'Rs. ',
+              prefixIcon: Icons.sell_outlined,
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              textInputAction: TextInputAction.done,
             ),
             const SizedBox(height: 12),
             Text(
               'Date & Time: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year} ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
+              style: TextStyle(
+                fontSize: 12,
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
-          TextButton(
+          FormSecondaryButton(
+            label: 'Cancel',
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FormPrimaryButton(
+            label: 'Add Item',
+            icon: Icons.add_rounded,
             onPressed: addDueItem,
-            child: const Text('Add Item'),
           ),
         ],
       ),

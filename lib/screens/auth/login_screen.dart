@@ -1,8 +1,9 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:digital_khata/components/my_button.dart';
 import 'package:digital_khata/components/my_text_field.dart';
-import 'package:digital_khata/helper/helper_function.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
   final void Function()? onTap;
@@ -45,13 +46,18 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     try {
-      await Supabase.instance.client.auth.signInWithPassword(
+      final response = await Supabase.instance.client.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog
+
+      if (response.session != null) {
+        // Navigate to main dashboard instantly
+        context.go('/');
+      }
     } on AuthException catch (e) {
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog

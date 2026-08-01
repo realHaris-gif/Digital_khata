@@ -22,9 +22,24 @@ dependencies:
 
   # Supabase
   supabase_flutter: ^2.8.0
+  qr_flutter: ^4.1.0
 
-  # State management (used by suppliers/accounts/ledger screens)
+  # State Management
   flutter_riverpod: ^2.6.1
+
+  # Biometrics, Platform Services & URL Launching
+  local_auth: ^2.3.0
+  url_launcher: ^6.3.1
+
+  # PDF & Excel Document Exports
+  pdf: ^3.11.1
+  excel: ^4.0.6
+
+  # Barcode & Sharing Utilities
+  barcode_widget: ^2.0.4
+  barcode: ^2.2.8
+  share_plus: ^9.0.0
+  path_provider: ^2.1.0
 
   # Utilities
   image_picker: ^1.2.0

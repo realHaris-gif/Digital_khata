@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:digital_khata/l10n/app_localizations.dart';
 import 'package:digital_khata/models/category_model.dart';
 import 'package:digital_khata/services/inventory_service.dart';
+import 'package:digital_khata/widgets/forms/form_widgets.dart';
 
 final inventoryRepoProvider = Provider<InventoryRepository>((ref) {
   return InventoryRepository(Supabase.instance.client);
@@ -58,7 +59,7 @@ class CategoriesScreen extends ConsumerWidget {
           builder: (context, setModalState) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppFormTokens.radiusLg),
               ),
               title: Text(isEditing ? 'Edit Category' : 'New Category'),
               content: Form(
@@ -67,36 +68,41 @@ class CategoriesScreen extends ConsumerWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      TextFormField(
+                      AppFormTextField(
                         controller: nameController,
-                        decoration: const InputDecoration(
-                          labelText: 'Category Name *',
-                          border: OutlineInputBorder(),
-                        ),
+                        autofocus: true,
+                        labelText: 'Category Name *',
+                        hintText: 'e.g. Groceries',
+                        prefixIcon: Icons.category_outlined,
+                        textCapitalization: TextCapitalization.words,
+                        textInputAction: TextInputAction.next,
                         validator: (val) => val == null || val.trim().isEmpty
                             ? 'Enter category name'
                             : null,
                       ),
                       const SizedBox(height: 12),
-                      TextFormField(
+                      AppFormTextField(
                         controller: descController,
-                        decoration: const InputDecoration(
-                          labelText: 'Description (Optional)',
-                          border: OutlineInputBorder(),
-                        ),
+                        labelText: 'Description (Optional)',
+                        hintText: 'Short description',
+                        prefixIcon: Icons.notes_outlined,
+                        textCapitalization: TextCapitalization.sentences,
+                        textInputAction: TextInputAction.done,
                       ),
                       const SizedBox(height: 16),
-                      const Align(
+                      Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
                           'Category Color',
-                          style: TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 13),
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Wrap(
-                        spacing: 8,
+                        spacing: 10,
+                        runSpacing: 10,
                         children: presetColors.map((color) {
                           final isSelected = selectedColor.value == color.value;
                           return GestureDetector(
@@ -105,12 +111,30 @@ class CategoriesScreen extends ConsumerWidget {
                                 selectedColor = color;
                               });
                             },
-                            child: CircleAvatar(
-                              radius: 14,
-                              backgroundColor: color,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 150),
+                              width: 36,
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : Colors.transparent,
+                                  width: 2.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: color.withValues(alpha: 0.35),
+                                    blurRadius: isSelected ? 10 : 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
                               child: isSelected
-                                  ? const Icon(Icons.check,
-                                      color: Colors.white, size: 16)
+                                  ? const Icon(Icons.check_rounded,
+                                      color: Colors.white, size: 18)
                                   : null,
                             ),
                           );
@@ -120,13 +144,14 @@ class CategoriesScreen extends ConsumerWidget {
                   ),
                 ),
               ),
+              actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               actions: [
-                TextButton(
+                FormSecondaryButton(
+                  label: 'Cancel',
                   onPressed: () => Navigator.pop(ctx),
-                  child: const Text('Cancel'),
                 ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+                FormPrimaryButton(
+                  label: isEditing ? 'Update' : 'Create',
                   onPressed: () async {
                     if (!formKey.currentState!.validate()) return;
                     final repo = ref.read(inventoryRepoProvider);
@@ -156,10 +181,6 @@ class CategoriesScreen extends ConsumerWidget {
                     if (ctx.mounted) Navigator.pop(ctx);
                     _refresh(ref, userId);
                   },
-                  child: Text(
-                    isEditing ? 'Update' : 'Create',
-                    style: const TextStyle(color: Colors.white),
-                  ),
                 ),
               ],
             );

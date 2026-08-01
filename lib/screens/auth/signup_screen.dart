@@ -1,8 +1,9 @@
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:digital_khata/components/my_button.dart';
 import 'package:digital_khata/components/my_text_field.dart';
-import 'package:digital_khata/helper/helper_function.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/material.dart';
 
 class SignupScreen extends StatefulWidget {
   final void Function()? onTap;
@@ -73,7 +74,7 @@ class _SignupScreenState extends State<SignupScreen> {
       );
 
       if (res.user != null) {
-        await Supabase.instance.client.from('profiles').insert({
+        await Supabase.instance.client.from('profiles').upsert({
           'id': res.user!.id,
           'email': res.user!.email,
           'username': username,
@@ -82,11 +83,17 @@ class _SignupScreenState extends State<SignupScreen> {
 
       if (!mounted) return;
       Navigator.pop(context); // Close loading dialog
-      _showMessage('Account created successfully! Please sign in.');
 
-      // Return to login view if callback present
-      if (widget.onTap != null) {
-        widget.onTap!();
+      // If Supabase created a valid session (e.g. Email Confirmation disabled), navigate to Home directly
+      if (res.session != null) {
+        _showMessage('Account created successfully!');
+        context.go('/');
+      } else {
+        // If Email Confirmation is enabled in Supabase settings
+        _showMessage('Account created! Please check your email to verify.');
+        if (widget.onTap != null) {
+          widget.onTap!();
+        }
       }
     } on AuthException catch (e) {
       if (!mounted) return;

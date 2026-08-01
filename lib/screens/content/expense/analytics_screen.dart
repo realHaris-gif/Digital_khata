@@ -19,6 +19,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final primaryTextColor = theme.colorScheme.onSurface;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Analytics & Reports'),
@@ -26,35 +29,35 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 90),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Top metrics
-            _buildTopMetricsSection(),
+            _buildTopMetricsSection(primaryTextColor),
             const SizedBox(height: 24),
 
             // Overdue customers alert
-            _buildOverdueCustomersSection(),
+            _buildOverdueCustomersSection(primaryTextColor),
             const SizedBox(height: 24),
 
             // Payment status distribution
-            _buildPaymentStatusSection(),
+            _buildPaymentStatusSection(primaryTextColor),
             const SizedBox(height: 24),
 
             // Top customers
-            _buildTopCustomersSection(),
+            _buildTopCustomersSection(primaryTextColor),
             const SizedBox(height: 24),
 
             // Monthly summary
-            _buildMonthlySummarySection(),
+            _buildMonthlySummarySection(primaryTextColor),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTopMetricsSection() {
+  Widget _buildTopMetricsSection(Color primaryTextColor) {
     return FutureBuilder<Map<String, dynamic>>(
       future: _analyticsService.getCustomerAnalytics(),
       builder: (context, snapshot) {
@@ -63,7 +66,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         }
 
         if (snapshot.hasError) {
-          return Text('Error: ${snapshot.error}');
+          return Text(
+            'Error: ${snapshot.error}',
+            style: TextStyle(color: primaryTextColor),
+          );
         }
 
         final data = snapshot.data ?? {};
@@ -75,11 +81,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Key Metrics',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: primaryTextColor,
               ),
             ),
             const SizedBox(height: 12),
@@ -90,7 +97,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     title: 'Total Due',
                     value: 'Rs. ${totalDue.toStringAsFixed(2)}',
                     icon: Icons.money,
-                    color: Colors.red,
+                    color: Colors.redAccent,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -99,7 +106,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     title: 'Customers',
                     value: totalCustomers.toString(),
                     icon: Icons.people,
-                    color: Colors.blue,
+                    color: Colors.blueAccent,
                   ),
                 ),
               ],
@@ -112,7 +119,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     title: 'Avg Due',
                     value: 'Rs. ${averageDue.toStringAsFixed(2)}',
                     icon: Icons.trending_up,
-                    color: Colors.orange,
+                    color: Colors.orangeAccent,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -121,7 +128,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     title: 'Highest Due',
                     value: 'Rs. ${highestDue.toStringAsFixed(2)}',
                     icon: Icons.arrow_upward,
-                    color: Colors.purple,
+                    color: Colors.purpleAccent,
                   ),
                 ),
               ],
@@ -138,12 +145,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     required IconData icon,
     required Color color,
   }) {
+    final theme = Theme.of(context);
+    final primaryTextColor = theme.colorScheme.onSurface;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,9 +171,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
+              color: primaryTextColor,
             ),
           ),
         ],
@@ -171,7 +182,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildOverdueCustomersSection() {
+  Widget _buildOverdueCustomersSection(Color primaryTextColor) {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _analyticsService.getOverdueCustomers(),
       builder: (context, snapshot) {
@@ -184,19 +195,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.1),
+              color: Colors.green.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green.withOpacity(0.3)),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.green),
-                const SizedBox(width: 12),
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'No overdue payments! Great job!',
                     style: TextStyle(
-                      color: Colors.green[700],
+                      color: Colors.green,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -209,19 +220,20 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Overdue Payments (30+ days)',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: primaryTextColor,
               ),
             ),
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
-                color: Colors.red.withOpacity(0.1),
+                color: Colors.red.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.withOpacity(0.3)),
+                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
               ),
               child: Column(
                 children: List.generate(
@@ -245,6 +257,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     int index,
     int totalCount,
   ) {
+    final theme = Theme.of(context);
+    final primaryTextColor = theme.colorScheme.onSurface;
+    final secondaryTextColor = theme.colorScheme.onSurfaceVariant;
+
     return Padding(
       padding: const EdgeInsets.all(12),
       child: Column(
@@ -257,9 +273,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   children: [
                     Text(
                       customer['name'] ?? 'Unknown',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
+                        color: primaryTextColor,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -267,7 +284,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                       '${customer['daysSinceLastTransaction']} days overdue',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey[600],
+                        color: secondaryTextColor,
                       ),
                     ),
                   ],
@@ -278,7 +295,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
-                  color: Colors.red,
+                  color: Colors.redAccent,
                 ),
               ),
             ],
@@ -288,7 +305,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               padding: const EdgeInsets.only(top: 12),
               child: Divider(
                 height: 1,
-                color: Colors.red.withOpacity(0.2),
+                color: Colors.red.withValues(alpha: 0.2),
               ),
             ),
         ],
@@ -296,7 +313,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildPaymentStatusSection() {
+  Widget _buildPaymentStatusSection(Color primaryTextColor) {
     return FutureBuilder<Map<String, int>>(
       future: _analyticsService.getPaymentStatusDistribution(),
       builder: (context, snapshot) {
@@ -313,11 +330,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Payment Status',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: primaryTextColor,
               ),
             ),
             const SizedBox(height: 12),
@@ -346,7 +364,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     label: 'High Due',
                     count: highDue,
                     percentage: total > 0 ? (highDue / total * 100) : 0,
-                    color: Colors.red,
+                    color: Colors.redAccent,
                   ),
                 ),
               ],
@@ -363,12 +381,16 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     required double percentage,
     required Color color,
   }) {
+    final theme = Theme.of(context);
+    final primaryTextColor = theme.colorScheme.onSurface;
+    final secondaryTextColor = theme.colorScheme.onSurfaceVariant;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,9 +406,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           const SizedBox(height: 4),
           Text(
             count.toString(),
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
+              color: primaryTextColor,
             ),
           ),
           const SizedBox(height: 4),
@@ -394,7 +417,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             '${percentage.toStringAsFixed(1)}%',
             style: TextStyle(
               fontSize: 11,
-              color: Colors.grey[600],
+              color: secondaryTextColor,
             ),
           ),
         ],
@@ -402,7 +425,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildTopCustomersSection() {
+  Widget _buildTopCustomersSection(Color primaryTextColor) {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _analyticsService.getTopCustomers(limit: 5),
       builder: (context, snapshot) {
@@ -418,11 +441,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Top Customers (by due)',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: primaryTextColor,
               ),
             ),
             const SizedBox(height: 12),
@@ -442,20 +466,34 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildTopCustomerTile(Map<String, dynamic> customer, int rank) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final cardColor = theme.colorScheme.surface;
+    final borderColor = isDark ? Colors.white12 : Colors.grey.shade300;
+    final primaryTextColor = theme.colorScheme.onSurface;
+    final secondaryTextColor = theme.colorScheme.onSurfaceVariant;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
+        color: cardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
             width: 32,
             height: 32,
-            decoration: const BoxDecoration(
-              color: Colors.blue,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primary,
               shape: BoxShape.circle,
             ),
             child: Center(
@@ -476,16 +514,17 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               children: [
                 Text(
                   customer['name'] ?? 'Unknown',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
+                    color: primaryTextColor,
                   ),
                 ),
                 Text(
                   customer['phone'] ?? 'N/A',
                   style: TextStyle(
                     fontSize: 12,
-                    color: Colors.grey[600],
+                    color: secondaryTextColor,
                   ),
                 ),
               ],
@@ -493,9 +532,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           ),
           Text(
             'Rs. ${(customer['due'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
-            style: const TextStyle(
+            style: TextStyle(
               fontWeight: FontWeight.bold,
               fontSize: 14,
+              color: primaryTextColor,
             ),
           ),
         ],
@@ -503,7 +543,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildMonthlySummarySection() {
+  Widget _buildMonthlySummarySection(Color primaryTextColor) {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _analyticsService.getMonthlySummary(),
       builder: (context, snapshot) {
@@ -516,22 +556,35 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           return const SizedBox();
         }
 
+        final theme = Theme.of(context);
+        final isDark = theme.brightness == Brightness.dark;
+        final cardColor = theme.colorScheme.surface;
+        final borderColor = isDark ? Colors.white12 : Colors.grey.shade300;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Monthly Summary (Last 12 months)',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
+                color: primaryTextColor,
               ),
             ),
             const SizedBox(height: 12),
             Container(
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: cardColor,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey[200]!),
+                border: Border.all(color: borderColor),
+                boxShadow: [
+                  BoxShadow(
+                    color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: Column(
                 children: List.generate(
@@ -540,6 +593,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                     monthly[index],
                     index,
                     monthly.length,
+                    borderColor,
                   ),
                 ),
               ),
@@ -554,9 +608,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     Map<String, dynamic> monthData,
     int index,
     int totalCount,
+    Color borderColor,
   ) {
     final month = monthData['month'] as String? ?? '';
     final due = (monthData['due'] as num?)?.toDouble() ?? 0.0;
+    final theme = Theme.of(context);
+    final primaryTextColor = theme.colorScheme.onSurface;
 
     return Padding(
       padding: const EdgeInsets.all(12),
@@ -567,16 +624,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: [
               Text(
                 month,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
+                  color: primaryTextColor,
                 ),
               ),
               Text(
                 'Rs. ${due.toStringAsFixed(2)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
+                  color: primaryTextColor,
                 ),
               ),
             ],
@@ -586,7 +645,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               padding: const EdgeInsets.only(top: 12),
               child: Divider(
                 height: 1,
-                color: Colors.grey[200],
+                color: borderColor,
               ),
             ),
         ],

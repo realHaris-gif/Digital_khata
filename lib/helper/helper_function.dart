@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Formats standard double monetary values without dividing by 100.
 String formatCurrency(double amount) {
@@ -12,11 +14,21 @@ extension CurrencyFormatting on double {
   }
 }
 
-/// Logout helper
-void logout(BuildContext context) {
-  Navigator.pushNamedAndRemoveUntil(
-    context,
-    '/toggle_login_signup_screen',
-    (route) => false,
-  );
+/// Logout helper adapted for GoRouter and Supabase Auth
+Future<void> logout(BuildContext context) async {
+  try {
+    // 1. Sign out the active Supabase session
+    await Supabase.instance.client.auth.signOut();
+
+    if (context.mounted) {
+      // 2. Navigate back to login using GoRouter
+      context.go('/login');
+    }
+  } catch (e) {
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error logging out: $e')),
+      );
+    }
+  }
 }

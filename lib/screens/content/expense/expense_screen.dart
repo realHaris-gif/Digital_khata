@@ -48,14 +48,16 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (context) {
+        final isDark = Theme.of(context).brightness == Brightness.dark;
+
         return StatefulBuilder(
           builder: (context, setModalState) {
             return Padding(
               padding: EdgeInsets.only(
-                bottom: MediaQuery.of(context).viewInsets.bottom,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
                 top: 20,
                 left: 20,
                 right: 20,
@@ -71,14 +73,16 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         isEditing ? 'Edit Expense' : 'Add New Expense',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
+                              color: isDark ? Colors.white : Colors.black87,
                             ),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         initialValue: _description,
-                        decoration: const InputDecoration(
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                        decoration: InputDecoration(
                           labelText: 'Description',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         validator: (val) =>
                             val == null || val.trim().isEmpty ? 'Please enter a description' : null,
@@ -87,9 +91,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                       const SizedBox(height: 12),
                       TextFormField(
                         initialValue: isEditing ? _amount.toString() : '',
-                        decoration: const InputDecoration(
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                        decoration: InputDecoration(
                           labelText: 'Amount (Rs)',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         validator: (val) {
@@ -104,9 +109,11 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                         value: _defaultCategories.contains(_selectedCategory)
                             ? _selectedCategory
                             : _defaultCategories.first,
-                        decoration: const InputDecoration(
+                        dropdownColor: isDark ? const Color(0xFF2B2B2B) : Colors.white,
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                        decoration: InputDecoration(
                           labelText: 'Category',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         items: _defaultCategories
                             .map((cat) => DropdownMenuItem(
@@ -119,17 +126,20 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                       const SizedBox(height: 12),
                       TextFormField(
                         initialValue: _notes,
-                        decoration: const InputDecoration(
+                        style: TextStyle(color: isDark ? Colors.white : Colors.black87),
+                        decoration: InputDecoration(
                           labelText: 'Notes (Optional)',
-                          border: OutlineInputBorder(),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         maxLines: 2,
                         onSaved: (val) => _notes = val?.trim() ?? '',
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 20),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          minimumSize: const Size(double.infinity, 48),
+                          minimumSize: const Size(double.infinity, 50),
+                          backgroundColor: isDark ? Colors.tealAccent.shade700 : Colors.teal,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                         ),
                         onPressed: _isSaving
                             ? null
@@ -180,7 +190,13 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                                   strokeWidth: 2,
                                 ),
                               )
-                            : Text(isEditing ? 'Update Expense' : 'Save Expense'),
+                            : Text(
+                                isEditing ? 'Update Expense' : 'Save Expense',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
                       const SizedBox(height: 16),
                     ],
@@ -196,6 +212,9 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final theme = Theme.of(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Expense Tracker'),
@@ -210,7 +229,10 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
           if (snapshot.hasError) {
             return Center(
-              child: Text('Error loading expenses: ${snapshot.error}'),
+              child: Text(
+                'Error loading expenses: ${snapshot.error}',
+                style: TextStyle(color: isDark ? Colors.grey.shade400 : Colors.black87),
+              ),
             );
           }
 
@@ -222,42 +244,57 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
 
           return Column(
             children: [
-              // Summary Banner
+              // Theme-Adaptive Summary Banner Card
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 margin: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(16),
+                  color: isDark ? const Color(0xFF1E1E1E) : theme.primaryColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: Theme.of(context).primaryColor.withOpacity(0.3),
+                    color: isDark ? Colors.white12 : theme.primaryColor.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Column(
                   children: [
-                    const Text(
-                      'Total Expenses',
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                    Text(
+                      'TOTAL EXPENSES',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.1,
+                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                      ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Rs. ${totalExpense.toStringAsFixed(2)}',
                       style: TextStyle(
                         fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
+                        fontWeight: FontWeight.w900,
+                        // High-contrast color fix for dark mode
+                        color: isDark ? Colors.white : theme.primaryColor,
                       ),
                     ),
                   ],
                 ),
               ),
 
-              // Expenses List
+              // Expenses List View
               Expanded(
                 child: expenses.isEmpty
-                    ? const Center(child: Text('No expenses recorded yet.'))
+                    ? Center(
+                        child: Text(
+                          'No expenses recorded yet.',
+                          style: TextStyle(
+                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          ),
+                        ),
+                      )
                     : ListView.builder(
+                        // Extra bottom padding ensures last item is clear of floating action button & footer bar
+                        padding: const EdgeInsets.only(bottom: 120),
                         itemCount: expenses.length,
                         itemBuilder: (context, index) {
                           final item = expenses[index];
@@ -273,7 +310,7 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                             key: Key(id.isNotEmpty ? id : index.toString()),
                             direction: DismissDirection.endToStart,
                             background: Container(
-                              color: Colors.red,
+                              color: Colors.redAccent,
                               alignment: Alignment.centerRight,
                               padding: const EdgeInsets.only(right: 20),
                               child: const Icon(Icons.delete, color: Colors.white),
@@ -284,38 +321,59 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
                                 setState(() {});
                               }
                             },
-                            child: ListTile(
-                              onTap: () => _showAddOrEditExpenseDialog(existingExpense: item),
-                              leading: CircleAvatar(
-                                child: Icon(_getCategoryIcon(category)),
+                            child: Card(
+                              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                              elevation: 0,
+                              color: isDark ? const Color(0xFF2B2B2B) : Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                side: BorderSide(
+                                  color: isDark ? Colors.white12 : Colors.grey.shade200,
+                                ),
                               ),
-                              title: Text(
-                                description.isNotEmpty ? description : category,
-                                style: const TextStyle(fontWeight: FontWeight.w600),
-                              ),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    '$category • ${date != null ? DateFormat('dd MMM yyyy').format(date) : ''}',
+                              child: ListTile(
+                                onTap: () => _showAddOrEditExpenseDialog(existingExpense: item),
+                                leading: CircleAvatar(
+                                  backgroundColor: isDark ? Colors.white12 : theme.primaryColor.withValues(alpha: 0.1),
+                                  child: Icon(
+                                    _getCategoryIcon(category),
+                                    color: isDark ? Colors.tealAccent : theme.primaryColor,
                                   ),
-                                  if (notes.isNotEmpty)
+                                ),
+                                title: Text(
+                                  description.isNotEmpty ? description : category,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : Colors.black87,
+                                  ),
+                                ),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text(
-                                      'Note: $notes',
+                                      '$category • ${date != null ? DateFormat('dd MMM yyyy').format(date) : ''}',
                                       style: TextStyle(
-                                        fontSize: 11,
-                                        color: Colors.grey[600],
-                                        fontStyle: FontStyle.italic,
+                                        color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                       ),
                                     ),
-                                ],
-                              ),
-                              trailing: Text(
-                                'Rs. ${amount.toStringAsFixed(0)}',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.redAccent,
-                                  fontSize: 15,
+                                    if (notes.isNotEmpty)
+                                      Text(
+                                        'Note: $notes',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: isDark ? Colors.grey.shade500 : Colors.grey.shade600,
+                                          fontStyle: FontStyle.italic,
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                trailing: Text(
+                                  'Rs. ${amount.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.redAccent.shade100 : Colors.redAccent,
+                                    fontSize: 15,
+                                  ),
                                 ),
                               ),
                             ),
@@ -327,9 +385,21 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddOrEditExpenseDialog(),
-        child: const Icon(Icons.add),
+
+
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80, right: 8), // Keeps FAB elevated above bottom nav bar
+        child: FloatingActionButton.extended(
+          backgroundColor: isDark ? Colors.white : Colors.black,
+          foregroundColor: isDark ? Colors.black : Colors.white,
+          onPressed: () => _showAddOrEditExpenseDialog(),
+          icon: const Icon(Icons.add),
+          label: const Text(
+            'Add Expense',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
     );
   }
@@ -337,19 +407,19 @@ class _ExpenseScreenState extends State<ExpenseScreen> {
   IconData _getCategoryIcon(String category) {
     switch (category) {
       case 'Rent':
-        return Icons.home;
+        return Icons.home_rounded;
       case 'Utilities':
-        return Icons.bolt;
+        return Icons.bolt_rounded;
       case 'Inventory':
-        return Icons.inventory;
+        return Icons.inventory_2_rounded;
       case 'Salaries':
-        return Icons.people;
+        return Icons.people_alt_rounded;
       case 'Transport':
-        return Icons.directions_bus;
+        return Icons.directions_bus_rounded;
       case 'Maintenance':
-        return Icons.build;
+        return Icons.build_rounded;
       default:
-        return Icons.receipt_long;
+        return Icons.receipt_long_rounded;
     }
   }
 }

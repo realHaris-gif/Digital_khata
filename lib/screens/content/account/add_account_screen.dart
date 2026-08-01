@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:digital_khata/l10n/app_localizations.dart';
 import 'package:digital_khata/models/account_model.dart';
 import 'package:digital_khata/services/account_service.dart';
+import 'package:digital_khata/widgets/forms/form_widgets.dart';
 
 class AddEditAccountScreen extends ConsumerStatefulWidget {
   final String? accountId;
@@ -25,6 +26,7 @@ class _AddEditAccountScreenState extends ConsumerState<AddEditAccountScreen> {
   late TextEditingController _openingBalanceController;
   AccountType _selectedType = AccountType.cash;
   bool _isLoading = false;
+  bool _isSaving = false;
 
   final SupabaseClient _supabase = Supabase.instance.client;
 
@@ -63,8 +65,10 @@ class _AddEditAccountScreenState extends ConsumerState<AddEditAccountScreen> {
     } catch (e) {
       if (mounted) {
         final l10n = AppLocalizations.of(context)!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.error}: $e')),
+        showFormSnackBar(
+          context,
+          message: '${l10n.error}: $e',
+          isError: true,
         );
       }
     } finally {
@@ -78,13 +82,15 @@ class _AddEditAccountScreenState extends ConsumerState<AddEditAccountScreen> {
     final l10n = AppLocalizations.of(context)!;
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(l10n.pleaseEnterName)),
+      showFormSnackBar(
+        context,
+        message: l10n.pleaseEnterName,
+        isError: true,
       );
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() => _isSaving = true);
 
     try {
       final repository = AccountRepository(_supabase);
@@ -115,12 +121,11 @@ class _AddEditAccountScreenState extends ConsumerState<AddEditAccountScreen> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(widget.accountId == null
-                ? l10n.accountAdded
-                : l10n.accountUpdated),
-          ),
+        showFormSnackBar(
+          context,
+          message: widget.accountId == null
+              ? l10n.accountAdded
+              : l10n.accountUpdated,
         );
         if (Navigator.canPop(context)) {
           Navigator.pop(context, true);
@@ -130,13 +135,15 @@ class _AddEditAccountScreenState extends ConsumerState<AddEditAccountScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${l10n.error}: $e')),
+        showFormSnackBar(
+          context,
+          message: '${l10n.error}: $e',
+          isError: true,
         );
       }
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() => _isSaving = false);
       }
     }
   }
@@ -146,127 +153,82 @@ class _AddEditAccountScreenState extends ConsumerState<AddEditAccountScreen> {
     final l10n = AppLocalizations.of(context)!;
     final isEditing = widget.accountId != null;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isEditing ? l10n.editAccount : l10n.addAccount),
-        centerTitle: true,
-        elevation: 0,
+    return FormScaffold(
+      appBar: formAppBar(
+        context,
+        title: isEditing ? l10n.editAccount : l10n.addAccount,
+        subtitle: isEditing
+            ? 'Update cash or bank account'
+            : 'Create a cash or bank account',
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+      isLoading: _isLoading,
+      bottomBar: FormBottomBar(
+        primaryLabel: isEditing ? l10n.update : l10n.save,
+        primaryIcon: Icons.check_rounded,
+        isLoading: _isSaving,
+        onPrimary: _isSaving ? null : _saveAccount,
+        secondaryLabel: 'Cancel',
+        onSecondary: () {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          } else {
+            context.pop();
+          }
+        },
+      ),
+      children: [
+        FormSectionCard(
+          title: 'Account details',
+          subtitle: 'Name and account type',
+          icon: Icons.account_balance_outlined,
           children: [
-            // Name field
-            TextField(
+            AppFormTextField(
               controller: _nameController,
-              decoration: InputDecoration(
-                labelText: l10n.name,
-                hintText: 'e.g., Main Cash Drawer, HBL Bank',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.account_balance),
-              ),
+              autofocus: true,
+              labelText: l10n.name,
+              hintText: 'e.g., Main Cash Drawer, HBL Bank',
+              prefixIcon: Icons.account_balance_wallet_outlined,
+              textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.next,
             ),
-            const SizedBox(height: 16),
-
-            // Account type dropdown
-            DropdownButtonFormField<AccountType>(
+            AppFormDropdown<AccountType>(
               value: _selectedType,
+              labelText: l10n.type,
+              prefixIcon: Icons.category_outlined,
+              items: AccountType.values
+                  .map(
+                    (type) => DropdownMenuItem(
+                      value: type,
+                      child: Text(type.displayName),
+                    ),
+                  )
+                  .toList(),
               onChanged: (value) {
                 if (value != null) {
                   setState(() => _selectedType = value);
                 }
               },
-              items: AccountType.values
-                  .map((type) => DropdownMenuItem(
-                        value: type,
-                        child: Text(type.displayName),
-                      ))
-                  .toList(),
-              decoration: InputDecoration(
-                labelText: l10n.type,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                prefixIcon: const Icon(Icons.category),
-              ),
             ),
-            const SizedBox(height: 16),
-
-            // Opening balance field (only shown when creating)
-            if (!isEditing) ...[
-              TextField(
+            if (!isEditing)
+              AppFormTextField(
                 controller: _openingBalanceController,
-                decoration: InputDecoration(
-                  labelText: l10n.openingBalance,
-                  hintText: '0.00',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  prefixText: 'Rs. ',
-                  prefixIcon: const Icon(Icons.payments),
-                ),
+                labelText: l10n.openingBalance,
+                hintText: '0.00',
+                prefixText: 'Rs. ',
+                prefixIcon: Icons.payments_outlined,
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
+                textInputAction: TextInputAction.done,
+                onFieldSubmitted: (_) => _saveAccount(),
               ),
-              const SizedBox(height: 16),
-            ],
-
-            // Account type information box
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade100),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.info_outline, color: Colors.blue.shade700),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${l10n.type}: ${_selectedType.displayName}',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade900,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Save button
-            ElevatedButton(
-              onPressed: _isLoading ? null : _saveAccount,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: _isLoading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : Text(isEditing ? l10n.update : l10n.save),
-            ),
           ],
         ),
-      ),
+        FormInfoBanner(
+          message: '${l10n.type}: ${_selectedType.displayName}',
+          icon: Icons.info_outline_rounded,
+        ),
+        const SizedBox(height: 8),
+      ],
     );
   }
 }

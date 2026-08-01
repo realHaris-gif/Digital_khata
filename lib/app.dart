@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:digital_khata/controller/language_controller.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
 import 'package:digital_khata/l10n/app_localizations.dart';
 import 'package:digital_khata/routes/app_router.dart';
+
+const Color emerald = Color(0xFF059669);
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -11,22 +13,52 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ValueListenableBuilder<Locale>(
       valueListenable: LanguageController.localeNotifier,
-      builder: (context, currentLocale, child) {
-        return MaterialApp.router(
-          debugShowCheckedModeBanner: false,
-          title: 'Digital Khata',
-          locale: currentLocale, // <-- Directly controls the active language
-          supportedLocales: const [
-            Locale('en'),
-            Locale('ur'), // Triggers automatic Right-to-Left (RTL) for Urdu
-          ],
-          localizationsDelegates: const [
-            AppLocalizations.delegate,
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          routerConfig: AppRouter.router,
+      builder: (context, locale, _) {
+        return ValueListenableBuilder<ThemeMode>(
+          valueListenable: ThemeController.themeModeNotifier,
+          builder: (context, themeMode, _) {
+            return MaterialApp.router(
+              title: 'Digital Khata',
+              debugShowCheckedModeBanner: false,
+              locale: locale,
+              localizationsDelegates: AppLocalizations.localizationsDelegates,
+              supportedLocales: AppLocalizations.supportedLocales,
+              themeMode: themeMode,
+
+              // Light Theme
+              theme: ThemeData(
+                useMaterial3: true,
+                brightness: Brightness.light,
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: Colors.teal,
+                  brightness: Brightness.light,
+                ).copyWith(
+                  primary: Colors.teal.shade700,
+                  secondary: emerald,
+                  tertiary: Colors.indigo.shade600,
+                ),
+              ),
+
+              // Dark Emerald Theme
+              darkTheme: ThemeData(
+                useMaterial3: true,
+                brightness: Brightness.dark,
+                scaffoldBackgroundColor: const Color(0xFF101917),
+                colorScheme: ColorScheme.fromSeed(
+                  seedColor: Colors.teal,
+                  brightness: Brightness.dark,
+                ).copyWith(
+                  primary: Colors.teal.shade400,
+                  secondary: emerald,
+                  tertiary: Colors.indigo.shade300,
+                  surface: const Color(0xFF182421),
+                ),
+              ),
+
+              // Referenced as AppRouter.router because it is static
+              routerConfig: AppRouter.router,
+            );
+          },
         );
       },
     );
