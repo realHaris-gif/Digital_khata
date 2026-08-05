@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
+
+// Blue Palette Constants
+const Color oxfordBlue = Color(0xFF192338);
+const Color spaceCadet = Color(0xFF1E2E4F);
+const Color yinMnBlue  = Color(0xFF31487A);
+const Color jordyBlue  = Color(0xFF8FB3E2);
+const Color lavender   = Color(0xFFD9E1F2);
 
 /// Shared design tokens for all Add/Edit data-entry forms.
 class AppFormTokens {
@@ -22,7 +30,7 @@ class AppFormTokens {
   static const EdgeInsets sectionPadding = EdgeInsets.all(18);
 }
 
-/// Consistent InputDecoration used across all forms.
+/// Consistent InputDecoration used across all forms, enhanced with project theme support.
 InputDecoration appInputDecoration(
   BuildContext context, {
   String? labelText,
@@ -35,14 +43,9 @@ InputDecoration appInputDecoration(
   int? maxLines,
   bool filled = true,
 }) {
-  final theme = Theme.of(context);
-  final cs = theme.colorScheme;
-  final isDark = theme.brightness == Brightness.dark;
-
+  final isDark = ThemeController.isDarkMode;
   final borderRadius = BorderRadius.circular(AppFormTokens.radiusMd);
-  final fill = isDark
-      ? cs.surface.withValues(alpha: 0.55)
-      : cs.surfaceContainerHighest.withValues(alpha: 0.45);
+  final fill = isDark ? spaceCadet.withOpacity(0.6) : const Color(0xFFF1F5F9);
 
   OutlineInputBorder outline(Color color, {double width = 1}) =>
       OutlineInputBorder(
@@ -60,7 +63,7 @@ InputDecoration appInputDecoration(
         ? null
         : IconTheme(
             data: IconThemeData(
-              color: cs.onSurfaceVariant.withValues(alpha: 0.85),
+              color: isDark ? jordyBlue : yinMnBlue.withOpacity(0.8),
               size: 22,
             ),
             child: prefixIcon,
@@ -73,31 +76,31 @@ InputDecoration appInputDecoration(
       vertical: (maxLines != null && maxLines > 1) ? 16 : 14,
     ),
     labelStyle: TextStyle(
-      color: cs.onSurfaceVariant,
-      fontWeight: FontWeight.w500,
-      fontSize: 14,
+      color: isDark ? jordyBlue : yinMnBlue,
+      fontWeight: FontWeight.w600,
+      fontSize: 13,
     ),
     hintStyle: TextStyle(
-      color: cs.onSurfaceVariant.withValues(alpha: 0.65),
+      color: isDark ? lavender.withOpacity(0.4) : Colors.grey.shade400,
       fontWeight: FontWeight.w400,
       fontSize: 14,
     ),
     helperStyle: TextStyle(
-      color: cs.onSurfaceVariant.withValues(alpha: 0.75),
+      color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600,
       fontSize: 12,
       height: 1.3,
     ),
-    errorStyle: TextStyle(
-      color: cs.error,
+    errorStyle: const TextStyle(
+      color: Colors.redAccent,
       fontSize: 12,
       fontWeight: FontWeight.w500,
     ),
-    border: outline(cs.outline.withValues(alpha: 0.35)),
-    enabledBorder: outline(cs.outline.withValues(alpha: 0.28)),
-    focusedBorder: outline(cs.primary, width: 1.6),
-    errorBorder: outline(cs.error.withValues(alpha: 0.7)),
-    focusedErrorBorder: outline(cs.error, width: 1.6),
-    disabledBorder: outline(cs.outline.withValues(alpha: 0.15)),
+    border: outline(isDark ? jordyBlue.withOpacity(0.2) : Colors.grey.shade300),
+    enabledBorder: outline(isDark ? jordyBlue.withOpacity(0.2) : Colors.grey.shade300),
+    focusedBorder: outline(isDark ? jordyBlue : yinMnBlue, width: 1.5),
+    errorBorder: outline(Colors.red.shade400, width: 1),
+    focusedErrorBorder: outline(Colors.red.shade600, width: 1.5),
+    disabledBorder: outline(isDark ? jordyBlue.withOpacity(0.1) : Colors.grey.shade200),
   );
 }
 
@@ -109,22 +112,29 @@ PreferredSizeWidget formAppBar(
   List<Widget>? actions,
   bool centerTitle = true,
 }) {
-  final theme = Theme.of(context);
-  final cs = theme.colorScheme;
+  final isDark = ThemeController.isDarkMode;
 
   return AppBar(
     centerTitle: centerTitle,
     elevation: 0,
-    scrolledUnderElevation: 0.5,
-    backgroundColor: theme.scaffoldBackgroundColor,
+    backgroundColor: isDark ? spaceCadet : Colors.white,
     surfaceTintColor: Colors.transparent,
+    leading: IconButton(
+      icon: Icon(
+        Icons.chevron_left_rounded,
+        size: 28,
+        color: isDark ? jordyBlue : oxfordBlue,
+      ),
+      onPressed: () => Navigator.pop(context),
+    ),
     titleSpacing: 0,
     title: subtitle == null
         ? Text(
             title,
-            style: theme.textTheme.titleLarge?.copyWith(
+            style: TextStyle(
+              fontSize: 18,
               fontWeight: FontWeight.w700,
-              letterSpacing: -0.2,
+              color: isDark ? Colors.white : oxfordBlue,
             ),
           )
         : Column(
@@ -134,16 +144,18 @@ PreferredSizeWidget formAppBar(
             children: [
               Text(
                 title,
-                style: theme.textTheme.titleMedium?.copyWith(
+                style: TextStyle(
+                  fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
+                  color: isDark ? Colors.white : oxfordBlue,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
                 subtitle,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: cs.onSurfaceVariant,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600,
                   fontWeight: FontWeight.w400,
                 ),
               ),
@@ -176,6 +188,8 @@ class FormScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
+
     final content = Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
@@ -197,20 +211,31 @@ class FormScaffold extends StatelessWidget {
       ),
     );
 
-    return Scaffold(
-      appBar: appBar,
-      floatingActionButton: floatingActionButton,
-      body: GestureDetector(
-        onTap: () => FocusScope.of(context).unfocus(),
-        behavior: HitTestBehavior.opaque,
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                children: [
-                  Expanded(child: content),
-                  if (bottomBar != null) bottomBar!,
-                ],
-              ),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(context).colorScheme.copyWith(primary: yinMnBlue),
+        scaffoldBackgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
+      ),
+      child: Scaffold(
+        backgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
+        appBar: appBar,
+        floatingActionButton: floatingActionButton,
+        body: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.opaque,
+          child: isLoading
+              ? Center(
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation(isDark ? jordyBlue : yinMnBlue),
+                  ),
+                )
+              : Column(
+                  children: [
+                    Expanded(child: content),
+                    if (bottomBar != null) bottomBar!,
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -237,27 +262,16 @@ class FormSectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = ThemeController.isDarkMode;
 
     return Container(
       margin: margin ?? const EdgeInsets.only(bottom: AppFormTokens.spacingMd),
       decoration: BoxDecoration(
-        color: isDark ? cs.surface.withValues(alpha: 0.9) : cs.surface,
+        color: isDark ? spaceCadet.withOpacity(0.6) : Colors.white,
         borderRadius: BorderRadius.circular(AppFormTokens.radiusLg),
         border: Border.all(
-          color: cs.outline.withValues(alpha: isDark ? 0.18 : 0.10),
+          color: isDark ? jordyBlue.withOpacity(0.15) : lavender,
         ),
-        boxShadow: isDark
-            ? null
-            : [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 6),
-                ),
-              ],
       ),
       child: Padding(
         padding: padding ?? AppFormTokens.sectionPadding,
@@ -272,11 +286,11 @@ class FormSectionCard extends StatelessWidget {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: cs.primary.withValues(alpha: 0.10),
+                        color: (isDark ? jordyBlue : yinMnBlue).withOpacity(0.12),
                         borderRadius:
                             BorderRadius.circular(AppFormTokens.radiusSm),
                       ),
-                      child: Icon(icon, size: 18, color: cs.primary),
+                      child: Icon(icon, size: 18, color: isDark ? jordyBlue : yinMnBlue),
                     ),
                     const SizedBox(width: 12),
                   ],
@@ -286,8 +300,10 @@ class FormSectionCard extends StatelessWidget {
                       children: [
                         Text(
                           title!,
-                          style: theme.textTheme.titleSmall?.copyWith(
+                          style: TextStyle(
+                            fontSize: 15,
                             fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white : oxfordBlue,
                             letterSpacing: -0.1,
                           ),
                         ),
@@ -295,8 +311,9 @@ class FormSectionCard extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(
                             subtitle!,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: cs.onSurfaceVariant,
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600,
                               height: 1.3,
                             ),
                           ),
@@ -349,21 +366,19 @@ class FormBottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cs = theme.colorScheme;
-    final isDark = theme.brightness == Brightness.dark;
+    final isDark = ThemeController.isDarkMode;
     final bottomInset = MediaQuery.viewPaddingOf(context).bottom;
 
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? cs.surface : cs.surface,
+        color: isDark ? spaceCadet : Colors.white,
         border: Border(
-          top: BorderSide(color: cs.outline.withValues(alpha: 0.12)),
+          top: BorderSide(color: isDark ? jordyBlue.withOpacity(0.15) : lavender),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.06),
+            color: Colors.black.withOpacity(isDark ? 0.25 : 0.06),
             blurRadius: 18,
             offset: const Offset(0, -4),
           ),
@@ -422,16 +437,16 @@ class FormPrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = ThemeController.isDarkMode;
 
     return SizedBox(
       height: 52,
-      child: FilledButton(
+      child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
-        style: FilledButton.styleFrom(
-          backgroundColor: cs.primary,
-          foregroundColor: cs.onPrimary,
-          disabledBackgroundColor: cs.primary.withValues(alpha: 0.45),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: isDark ? jordyBlue : yinMnBlue,
+          foregroundColor: isDark ? oxfordBlue : Colors.white,
+          disabledBackgroundColor: (isDark ? jordyBlue : yinMnBlue).withOpacity(0.45),
           elevation: 0,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppFormTokens.radiusMd),
@@ -448,7 +463,7 @@ class FormPrimaryButton extends StatelessWidget {
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.4,
-                  color: cs.onPrimary,
+                  color: isDark ? oxfordBlue : Colors.white,
                 ),
               )
             : Row(
@@ -484,15 +499,15 @@ class FormSecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = ThemeController.isDarkMode;
 
     return SizedBox(
       height: 52,
       child: OutlinedButton(
         onPressed: onPressed,
         style: OutlinedButton.styleFrom(
-          foregroundColor: cs.onSurface,
-          side: BorderSide(color: cs.outline.withValues(alpha: 0.35)),
+          foregroundColor: isDark ? Colors.white : oxfordBlue,
+          side: BorderSide(color: isDark ? jordyBlue.withOpacity(0.35) : yinMnBlue),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppFormTokens.radiusMd),
           ),
@@ -566,6 +581,8 @@ class AppFormTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
+
     return TextFormField(
       controller: controller,
       focusNode: focusNode,
@@ -586,10 +603,12 @@ class AppFormTextField extends StatelessWidget {
       onFieldSubmitted: onFieldSubmitted,
       onTap: onTap,
       autofillHints: autofillHints,
-      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            fontWeight: FontWeight.w500,
-            height: 1.25,
-          ),
+      style: TextStyle(
+        color: isDark ? Colors.white : oxfordBlue,
+        fontWeight: FontWeight.w500,
+        fontSize: 15,
+        height: 1.25,
+      ),
       decoration: appInputDecoration(
         context,
         labelText: labelText,
@@ -631,6 +650,8 @@ class AppFormDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
+
     return DropdownButtonFormField<T>(
       value: value,
       isExpanded: isExpanded,
@@ -639,7 +660,12 @@ class AppFormDropdown<T> extends StatelessWidget {
       validator: validator,
       icon: Icon(
         Icons.keyboard_arrow_down_rounded,
-        color: Theme.of(context).colorScheme.onSurfaceVariant,
+        color: isDark ? jordyBlue : yinMnBlue,
+      ),
+      style: TextStyle(
+        color: isDark ? Colors.white : oxfordBlue,
+        fontSize: 15,
+        fontWeight: FontWeight.w500,
       ),
       decoration: appInputDecoration(
         context,
@@ -649,7 +675,7 @@ class AppFormDropdown<T> extends StatelessWidget {
         prefixIcon: prefixIcon != null ? Icon(prefixIcon) : null,
       ),
       borderRadius: BorderRadius.circular(AppFormTokens.radiusMd),
-      dropdownColor: Theme.of(context).colorScheme.surface,
+      dropdownColor: isDark ? spaceCadet : Colors.white,
     );
   }
 }
@@ -669,15 +695,15 @@ class FormInfoBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    final accent = color ?? cs.primary;
+    final isDark = ThemeController.isDarkMode;
+    final accent = color ?? (isDark ? jordyBlue : yinMnBlue);
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: accent.withValues(alpha: 0.08),
+        color: accent.withOpacity(0.08),
         borderRadius: BorderRadius.circular(AppFormTokens.radiusMd),
-        border: Border.all(color: accent.withValues(alpha: 0.18)),
+        border: Border.all(color: accent.withOpacity(0.18)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -687,11 +713,12 @@ class FormInfoBanner extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurface,
-                    height: 1.35,
-                    fontWeight: FontWeight.w500,
-                  ),
+              style: TextStyle(
+                color: isDark ? Colors.white : oxfordBlue,
+                fontSize: 13,
+                height: 1.35,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
         ],
@@ -700,7 +727,7 @@ class FormInfoBanner extends StatelessWidget {
   }
 }
 
-/// Empty state box used inside forms (e.g. no invoice items).
+/// Empty state box used inside forms.
 class FormEmptyState extends StatelessWidget {
   final String message;
   final IconData icon;
@@ -713,27 +740,28 @@ class FormEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final isDark = ThemeController.isDarkMode;
 
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 16),
       decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.35),
+        color: isDark ? spaceCadet.withOpacity(0.4) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(AppFormTokens.radiusMd),
-        border: Border.all(color: cs.outline.withValues(alpha: 0.12)),
+        border: Border.all(color: isDark ? jordyBlue.withOpacity(0.15) : lavender),
       ),
       child: Column(
         children: [
-          Icon(icon, size: 32, color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
+          Icon(icon, size: 32, color: isDark ? jordyBlue.withOpacity(0.7) : yinMnBlue.withOpacity(0.6)),
           const SizedBox(height: 10),
           Text(
             message,
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: cs.onSurfaceVariant,
-                  fontWeight: FontWeight.w500,
-                ),
+            style: TextStyle(
+              color: isDark ? lavender : Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+              fontSize: 14,
+            ),
           ),
         ],
       ),
@@ -747,7 +775,6 @@ void showFormSnackBar(
   required String message,
   bool isError = false,
 }) {
-  final cs = Theme.of(context).colorScheme;
   final messenger = ScaffoldMessenger.of(context);
   messenger.hideCurrentSnackBar();
   messenger.showSnackBar(
@@ -757,20 +784,20 @@ void showFormSnackBar(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppFormTokens.radiusMd),
       ),
-      backgroundColor: isError ? cs.error : cs.primary,
+      backgroundColor: isError ? Colors.red.shade600 : oxfordBlue,
       content: Row(
         children: [
           Icon(
             isError ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
-            color: isError ? cs.onError : cs.onPrimary,
+            color: Colors.white,
             size: 20,
           ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: TextStyle(
-                color: isError ? cs.onError : cs.onPrimary,
+              style: const TextStyle(
+                color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -795,6 +822,8 @@ class FormSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 10, top: 4),
       child: Row(
@@ -802,10 +831,12 @@ class FormSectionHeader extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.1,
-                  ),
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : oxfordBlue,
+                letterSpacing: -0.1,
+              ),
             ),
           ),
           if (trailing != null) trailing!,

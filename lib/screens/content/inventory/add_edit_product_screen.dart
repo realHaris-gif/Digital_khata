@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 import 'package:digital_khata/models/category_model.dart';
 import 'package:digital_khata/models/product_model.dart';
 import 'package:digital_khata/services/inventory_service.dart';
@@ -39,6 +41,13 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
   bool _isLoading = false;
   List<Category> _categories = [];
 
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
+
   bool get _isEditing => widget.productToEdit != null;
 
   @override
@@ -74,7 +83,6 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
       if (mounted) {
         setState(() {
           _categories = list;
-          // Validate that the pre-selected category ID actually exists in fetched categories
           if (_selectedCategoryId != null &&
               !_categories.any((cat) => cat.id == _selectedCategoryId)) {
             _selectedCategoryId = null;
@@ -168,7 +176,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
       if (mounted) {
         showFormSnackBar(
           context,
-          message: 'Error saving product: $e',
+          message: LanguageController.isUrdu ? 'پروڈکٹ محفوظ کرنے میں خرابی: $e' : 'Error saving product: $e',
           isError: true,
         );
       }
@@ -179,198 +187,214 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FormScaffold(
-      appBar: formAppBar(
-        context,
-        title: _isEditing ? 'Edit Product' : 'Add New Product',
-        subtitle: _isEditing
-            ? 'Update product details and pricing'
-            : 'Add a product to your inventory',
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: yinMnBlue,
+            ),
       ),
-      bottomBar: FormBottomBar(
-        primaryLabel: _isEditing ? 'Update Product' : 'Save Product',
-        primaryIcon: Icons.check_rounded,
-        isLoading: _isLoading,
-        onPrimary: _isLoading ? null : _saveProduct,
-        secondaryLabel: 'Cancel',
-        onSecondary: () => context.pop(),
-      ),
-      children: [
-        Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              FormSectionCard(
-                title: 'Product identity',
-                subtitle: 'Name, category, and identifiers',
-                icon: Icons.inventory_2_outlined,
-                children: [
-                  AppFormTextField(
-                    controller: _nameController,
-                    autofocus: true,
-                    labelText: 'Product Name *',
-                    hintText: 'e.g. Premium Tea 500g',
-                    prefixIcon: Icons.shopping_bag_outlined,
-                    textCapitalization: TextCapitalization.words,
-                    textInputAction: TextInputAction.next,
-                    validator: (val) => val == null || val.trim().isEmpty
-                        ? 'Enter name'
-                        : null,
-                  ),
-                  AppFormDropdown<String?>(
-                    value: _selectedCategoryId,
-                    labelText: 'Category',
-                    hintText: 'Select a category (Optional)',
-                    prefixIcon: Icons.category_outlined,
-                    items: [
-                      const DropdownMenuItem<String>(
-                        value: null,
-                        child: Text('None / General'),
-                      ),
-                      ..._categories.map((cat) {
-                        return DropdownMenuItem<String>(
-                          value: cat.id,
-                          child: Text(cat.name),
-                        );
-                      }),
-                    ],
-                    onChanged: (val) {
-                      setState(() => _selectedCategoryId = val);
-                    },
-                  ),
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: AppFormTextField(
-                          controller: _skuController,
-                          labelText: 'SKU / Code',
-                          hintText: 'SKU-001',
-                          prefixIcon: Icons.tag_outlined,
-                          textInputAction: TextInputAction.next,
+      child: FormScaffold(
+        appBar: formAppBar(
+          context,
+          title: _isEditing ? (LanguageController.isUrdu ? 'پروڈکٹ میں ترمیم کریں' : 'Edit Product') : (LanguageController.isUrdu ? 'نیا پروڈکٹ شامل کریں' : 'Add New Product'),
+          subtitle: _isEditing
+              ? (LanguageController.isUrdu ? 'پروڈکٹ کی تفصیلات اور قیمتیں اپ ڈیٹ کریں' : 'Update product details and pricing')
+              : (LanguageController.isUrdu ? 'اپنے انوینٹری میں پروڈکٹ شامل کریں' : 'Add a product to your inventory'),
+        ),
+        bottomBar: FormBottomBar(
+          primaryLabel: _isEditing ? (LanguageController.isUrdu ? 'پروڈکٹ اپ ڈیٹ کریں' : 'Update Product') : (LanguageController.isUrdu ? 'پروڈکٹ محفوظ کریں' : 'Save Product'),
+          primaryIcon: Icons.check_rounded,
+          isLoading: _isLoading,
+          onPrimary: _isLoading ? null : _saveProduct,
+          secondaryLabel: LanguageController.isUrdu ? 'منسوخ کریں' : 'Cancel',
+          onSecondary: () => context.pop(),
+        ),
+        children: [
+          Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FormSectionCard(
+                  title: LanguageController.isUrdu ? 'پروڈکٹ کی شناخت' : 'Product identity',
+                  subtitle: LanguageController.isUrdu ? 'نام، زمرہ، اور شناختی نمبر' : 'Name, category, and identifiers',
+                  icon: Icons.inventory_2_outlined,
+                  children: [
+                    AppFormTextField(
+                      controller: _nameController,
+                      autofocus: true,
+                      labelText: LanguageController.isUrdu ? 'پروڈکٹ کا نام *' : 'Product Name *',
+                      hintText: LanguageController.isUrdu ? 'مثال کے طور پر، پریمیم چائے 500 گرام' : 'e.g. Premium Tea 500g',
+                      prefixIcon: Icons.shopping_bag_outlined,
+                      textCapitalization: TextCapitalization.words,
+                      textInputAction: TextInputAction.next,
+                      validator: (val) => val == null || val.trim().isEmpty
+                          ? (LanguageController.isUrdu ? 'نام درج کریں' : 'Enter name')
+                          : null,
+                    ),
+                    AppFormDropdown<String?>(
+                      value: _selectedCategoryId,
+                      labelText: LanguageController.isUrdu ? 'زمرہ' : 'Category',
+                      hintText: LanguageController.isUrdu ? 'ایک زمرہ منتخب کریں (اختیاری)' : 'Select a category (Optional)',
+                      prefixIcon: Icons.category_outlined,
+                      items: [
+                        DropdownMenuItem<String>(
+                          value: null,
+                          child: Text(
+                            LanguageController.isUrdu ? 'کوئی نہیں / جنرل' : 'None / General',
+                            textDirection: LanguageController.contentTextDirection,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppFormTextField(
-                          controller: _unitController,
-                          labelText: 'Unit',
-                          hintText: 'pcs, kg, box',
-                          prefixIcon: Icons.straighten_outlined,
-                          textInputAction: TextInputAction.next,
-                        ),
-                      ),
-                    ],
-                  ),
-                  AppFormTextField(
-                    controller: _barcodeController,
-                    labelText: 'Barcode Number',
-                    hintText: 'Scan or type barcode',
-                    prefixIcon: Icons.qr_code_2_rounded,
-                    textInputAction: TextInputAction.next,
-                  ),
-                ],
-              ),
-              FormSectionCard(
-                title: 'Pricing',
-                subtitle: 'Purchase and selling rates',
-                icon: Icons.payments_outlined,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: AppFormTextField(
-                          controller: _purchasePriceController,
-                          labelText: 'Purchase Price (Rs.)',
-                          hintText: '0.00',
-                          prefixIcon: Icons.shopping_cart_outlined,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          textInputAction: TextInputAction.next,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppFormTextField(
-                          controller: _sellingPriceController,
-                          labelText: 'Selling Price (Rs.) *',
-                          hintText: '0.00',
-                          prefixIcon: Icons.sell_outlined,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          textInputAction: TextInputAction.next,
-                          validator: (val) =>
-                              val == null || val.trim().isEmpty
-                                  ? 'Enter price'
-                                  : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              FormSectionCard(
-                title: 'Stock levels',
-                subtitle: 'Inventory quantity and alerts',
-                icon: Icons.warehouse_outlined,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (!_isEditing) ...[
+                        ..._categories.map((cat) {
+                          return DropdownMenuItem<String>(
+                            value: cat.id,
+                            child: Text(
+                              cat.name,
+                              textDirection: LanguageController.contentTextDirection,
+                            ),
+                          );
+                        }),
+                      ],
+                      onChanged: (val) {
+                        setState(() => _selectedCategoryId = val);
+                      },
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      textDirection: LanguageController.contentTextDirection,
+                      children: [
                         Expanded(
                           child: AppFormTextField(
-                            controller: _initialStockController,
-                            labelText: 'Initial Stock',
-                            hintText: '0',
-                            prefixIcon: Icons.inventory_outlined,
-                            keyboardType:
-                                const TextInputType.numberWithOptions(
-                                    decimal: true),
+                            controller: _skuController,
+                            labelText: LanguageController.isUrdu ? 'SKU / کوڈ' : 'SKU / Code',
+                            hintText: 'SKU-001',
+                            prefixIcon: Icons.tag_outlined,
                             textInputAction: TextInputAction.next,
                           ),
                         ),
                         const SizedBox(width: 12),
-                      ],
-                      Expanded(
-                        child: AppFormTextField(
-                          controller: _minimumStockController,
-                          labelText: 'Minimum Stock Alert',
-                          hintText: '5',
-                          prefixIcon: Icons.warning_amber_rounded,
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          textInputAction: TextInputAction.next,
+                        Expanded(
+                          child: AppFormTextField(
+                            controller: _unitController,
+                            labelText: LanguageController.isUrdu ? 'یونٹ' : 'Unit',
+                            hintText: 'pcs, kg, box',
+                            prefixIcon: Icons.straighten_outlined,
+                            textInputAction: TextInputAction.next,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              FormSectionCard(
-                title: 'Description',
-                subtitle: 'Optional product notes',
-                icon: Icons.notes_outlined,
-                children: [
-                  AppFormTextField(
-                    controller: _descriptionController,
-                    labelText: 'Description / Notes',
-                    hintText: 'Product details, variants, etc.',
-                    prefixIcon: Icons.description_outlined,
-                    maxLines: 3,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.done,
-                    onFieldSubmitted: (_) => _saveProduct(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
+                      ],
+                    ),
+                    AppFormTextField(
+                      controller: _barcodeController,
+                      labelText: LanguageController.isUrdu ? 'بارکوڈ نمبر' : 'Barcode Number',
+                      hintText: LanguageController.isUrdu ? 'بارکوڈ اسکین کریں یا ٹائپ کریں' : 'Scan or type barcode',
+                      prefixIcon: Icons.qr_code_2_rounded,
+                      textInputAction: TextInputAction.next,
+                    ),
+                  ],
+                ),
+                FormSectionCard(
+                  title: LanguageController.isUrdu ? 'قیمتیں' : 'Pricing',
+                  subtitle: LanguageController.isUrdu ? 'خریداری اور فروخت کی شرحیں' : 'Purchase and selling rates',
+                  icon: Icons.payments_outlined,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      textDirection: LanguageController.contentTextDirection,
+                      children: [
+                        Expanded(
+                          child: AppFormTextField(
+                            controller: _purchasePriceController,
+                            labelText: LanguageController.isUrdu ? 'خریداری کی قیمت (روپے)' : 'Purchase Price (Rs.)',
+                            hintText: '0.00',
+                            prefixIcon: Icons.shopping_cart_outlined,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            textInputAction: TextInputAction.next,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: AppFormTextField(
+                            controller: _sellingPriceController,
+                            labelText: LanguageController.isUrdu ? 'فروخت کی قیمت (روپے) *' : 'Selling Price (Rs.) *',
+                            hintText: '0.00',
+                            prefixIcon: Icons.sell_outlined,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            textInputAction: TextInputAction.next,
+                            validator: (val) =>
+                                val == null || val.trim().isEmpty
+                                    ? (LanguageController.isUrdu ? 'قیمت درج کریں' : 'Enter price')
+                                    : null,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                FormSectionCard(
+                  title: LanguageController.isUrdu ? 'اسٹاک کی سطح' : 'Stock levels',
+                  subtitle: LanguageController.isUrdu ? 'انوینٹری کی مقدار اور الرٹس' : 'Inventory quantity and alerts',
+                  icon: Icons.warehouse_outlined,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      textDirection: LanguageController.contentTextDirection,
+                      children: [
+                        if (!_isEditing) ...[
+                          Expanded(
+                            child: AppFormTextField(
+                              controller: _initialStockController,
+                              labelText: LanguageController.isUrdu ? 'ابتدائی اسٹاک' : 'Initial Stock',
+                              hintText: '0',
+                              prefixIcon: Icons.inventory_outlined,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                      decimal: true),
+                              textInputAction: TextInputAction.next,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                        ],
+                        Expanded(
+                          child: AppFormTextField(
+                            controller: _minimumStockController,
+                            labelText: LanguageController.isUrdu ? 'کم از کم اسٹاک الرٹ' : 'Minimum Stock Alert',
+                            hintText: '5',
+                            prefixIcon: Icons.warning_amber_rounded,
+                            keyboardType: const TextInputType.numberWithOptions(
+                                decimal: true),
+                            textInputAction: TextInputAction.next,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                FormSectionCard(
+                  title: LanguageController.isUrdu ? 'تفصیل' : 'Description',
+                  subtitle: LanguageController.isUrdu ? 'اختیاری پروڈکٹ نوٹس' : 'Optional product notes',
+                  icon: Icons.notes_outlined,
+                  children: [
+                    AppFormTextField(
+                      controller: _descriptionController,
+                      labelText: LanguageController.isUrdu ? 'تفصیل / نوٹس' : 'Description / Notes',
+                      hintText: LanguageController.isUrdu ? 'پروڈکٹ کی تفصیلات، اقسام وغیرہ۔' : 'Product details, variants, etc.',
+                      prefixIcon: Icons.description_outlined,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      textInputAction: TextInputAction.done,
+                      onFieldSubmitted: (_) => _saveProduct(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

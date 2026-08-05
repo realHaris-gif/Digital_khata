@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -6,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:digital_khata/models/account_model.dart';
 import 'package:digital_khata/models/account_transaction_model.dart';
 import 'package:digital_khata/services/account_service.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
 
 final accountDetailProvider =
     FutureProvider.family<Account?, String>((ref, accountId) async {
@@ -24,6 +26,13 @@ final accountTransactionsProvider =
 class AccountDetailScreen extends ConsumerWidget {
   final String accountId;
 
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
+
   const AccountDetailScreen({
     Key? key,
     required this.accountId,
@@ -36,6 +45,8 @@ class AccountDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final isDark = ThemeController.isDarkMode;
+
     return ref.watch(accountDetailProvider(accountId)).when(
       data: (account) {
         if (account == null) {
@@ -62,55 +73,64 @@ class AccountDetailScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Balance card
-                Card(
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: BorderSide(color: Colors.grey.shade200),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Current Balance',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Rs. ${account.currentBalance.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: account.currentBalance >= 0
-                                ? Colors.green
-                                : Colors.red,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: _buildInfoRow(
-                                'Opening Balance',
-                                'Rs. ${account.openingBalance.toStringAsFixed(2)}',
-                              ),
-                            ),
-                            Expanded(
-                              child: _buildInfoRow(
-                                'Account Type',
-                                account.type.displayName,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                // Balance card with Blue Gradient Theme
+                Container(
+                  padding: const EdgeInsets.all(22),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [spaceCadet, yinMnBlue, jordyBlue],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark
+                            ? Colors.black.withValues(alpha: 0.45)
+                            : spaceCadet.withValues(alpha: 0.2),
+                        blurRadius: 14,
+                        offset: const Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Current Balance',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: lavender,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Rs. ${account.currentBalance.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildInfoRow(
+                              'Opening Balance',
+                              'Rs. ${account.openingBalance.toStringAsFixed(2)}',
+                            ),
+                          ),
+                          Expanded(
+                            child: _buildInfoRow(
+                              'Account Type',
+                              account.type.displayName,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -123,9 +143,10 @@ class AccountDetailScreen extends ConsumerWidget {
                         onPressed: () {
                           _showAddDepositDialog(context, account, ref);
                         },
-                        icon: const Icon(Icons.arrow_downward),
-                        label: const Text('Deposit'),
+                        icon: const Icon(Icons.arrow_downward, color: Colors.white),
+                        label: const Text('Deposit', style: TextStyle(color: Colors.white)),
                         style: ElevatedButton.styleFrom(
+                          backgroundColor: yinMnBlue,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -139,9 +160,10 @@ class AccountDetailScreen extends ConsumerWidget {
                         onPressed: () {
                           _showWithdrawDialog(context, account, ref);
                         },
-                        icon: const Icon(Icons.arrow_upward),
-                        label: const Text('Withdraw'),
+                        icon: Icon(Icons.arrow_upward, color: isDark ? jordyBlue : yinMnBlue),
+                        label: Text('Withdraw', style: TextStyle(color: isDark ? jordyBlue : yinMnBlue)),
                         style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: isDark ? jordyBlue : yinMnBlue),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -158,9 +180,10 @@ class AccountDetailScreen extends ConsumerWidget {
                   onPressed: () {
                     _showTransferDialog(context, account, ref);
                   },
-                  icon: const Icon(Icons.compare_arrows),
-                  label: const Text('Transfer Funds'),
+                  icon: Icon(Icons.compare_arrows, color: isDark ? jordyBlue : yinMnBlue),
+                  label: Text('Transfer Funds', style: TextStyle(color: isDark ? jordyBlue : yinMnBlue)),
                   style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: isDark ? jordyBlue : yinMnBlue),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -170,11 +193,12 @@ class AccountDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 24),
 
                 // Transactions list header
-                const Text(
+                Text(
                   'Account History',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: isDark ? jordyBlue : oxfordBlue,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -186,7 +210,7 @@ class AccountDetailScreen extends ConsumerWidget {
       },
       loading: () => Scaffold(
         appBar: AppBar(title: const Text('Account Details')),
-        body: const Center(child: CircularProgressIndicator()),
+        body: const Center(child: CircularProgressIndicator(color: yinMnBlue)),
       ),
       error: (error, stackTrace) => Scaffold(
         appBar: AppBar(title: const Text('Account Details')),
@@ -196,23 +220,29 @@ class AccountDetailScreen extends ConsumerWidget {
   }
 
   Widget _buildTransactionsList(BuildContext context, WidgetRef ref) {
+    final isDark = ThemeController.isDarkMode;
+
     return ref.watch(accountTransactionsProvider(accountId)).when(
       data: (transactions) {
         if (transactions.isEmpty) {
           return Card(
             elevation: 0,
+            color: isDark ? spaceCadet.withValues(alpha: 0.6) : Colors.white,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: BorderSide(color: Colors.grey.shade200),
+              side: BorderSide(color: isDark ? jordyBlue.withValues(alpha: 0.2) : lavender),
             ),
-            child: const Padding(
-              padding: EdgeInsets.all(24),
+            child: Padding(
+              padding: const EdgeInsets.all(24),
               child: Center(
                 child: Column(
                   children: [
-                    Icon(Icons.receipt_long, size: 48, color: Colors.grey),
-                    SizedBox(height: 12),
-                    Text('No transactions recorded yet.'),
+                    Icon(Icons.receipt_long, size: 48, color: isDark ? jordyBlue : spaceCadet),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No transactions recorded yet.',
+                      style: TextStyle(color: isDark ? lavender : oxfordBlue),
+                    ),
                   ],
                 ),
               ),
@@ -230,7 +260,7 @@ class AccountDetailScreen extends ConsumerWidget {
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => const Center(child: CircularProgressIndicator(color: yinMnBlue)),
       error: (error, stackTrace) => Center(
         child: Text('Error: $error'),
       ),
@@ -241,6 +271,7 @@ class AccountDetailScreen extends ConsumerWidget {
     BuildContext context,
     AccountTransaction transaction,
   ) {
+    final isDark = ThemeController.isDarkMode;
     IconData icon;
     Color color;
 
@@ -248,41 +279,48 @@ class AccountDetailScreen extends ConsumerWidget {
       case AccountTransactionType.deposit:
       case AccountTransactionType.transferIn:
         icon = Icons.arrow_downward;
-        color = Colors.green;
+        color = Colors.green.shade400;
         break;
       case AccountTransactionType.withdrawal:
       case AccountTransactionType.transferOut:
         icon = Icons.arrow_upward;
-        color = Colors.red;
+        color = Colors.red.shade400;
         break;
     }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       elevation: 0,
+      color: isDark ? spaceCadet.withValues(alpha: 0.6) : Colors.white,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: isDark ? jordyBlue.withValues(alpha: 0.2) : lavender),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.1),
+          backgroundColor: color.withValues(alpha: 0.15),
           child: Icon(icon, color: color),
         ),
         title: Text(
           transaction.description != null && transaction.description!.isNotEmpty
               ? transaction.description!
               : transaction.type.displayName,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : oxfordBlue,
+          ),
         ),
         subtitle: Text(
           DateFormat('MMM dd, yyyy - hh:mm a')
               .format(transaction.createdAt),
-          style: const TextStyle(fontSize: 12),
+          style: TextStyle(
+            fontSize: 12,
+            color: isDark ? lavender.withValues(alpha: 0.7) : spaceCadet.withValues(alpha: 0.6),
+          ),
         ),
         trailing: Text(
-          '${color == Colors.green ? '+' : '-'}Rs. ${transaction.amount.toStringAsFixed(2)}',
+          '${transaction.type == AccountTransactionType.deposit || transaction.type == AccountTransactionType.transferIn ? '+' : '-'}Rs. ${transaction.amount.toStringAsFixed(2)}',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: color,
@@ -301,7 +339,7 @@ class AccountDetailScreen extends ConsumerWidget {
           label,
           style: const TextStyle(
             fontSize: 12,
-            color: Colors.grey,
+            color: lavender,
           ),
         ),
         const SizedBox(height: 4),
@@ -310,6 +348,7 @@ class AccountDetailScreen extends ConsumerWidget {
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 14,
+            color: Colors.white,
           ),
         ),
       ],
@@ -491,14 +530,15 @@ class _TransactionDialogState extends ConsumerState<_TransactionDialog> {
           child: const Text('Cancel'),
         ),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF31487A)),
           onPressed: _isLoading ? null : _addTransaction,
           child: _isLoading
               ? const SizedBox(
                   height: 20,
                   width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
-              : const Text('Submit'),
+              : const Text('Submit', style: TextStyle(color: Colors.white)),
         ),
       ],
     );
@@ -617,7 +657,7 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
                 if (!snapshot.hasData) {
                   return const Padding(
                     padding: EdgeInsets.all(12),
-                    child: Center(child: CircularProgressIndicator()),
+                    child: Center(child: CircularProgressIndicator(color: Color(0xFF31487A))),
                   );
                 }
 
@@ -686,14 +726,15 @@ class _TransferDialogState extends ConsumerState<_TransferDialog> {
           child: const Text('Cancel'),
         ),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF31487A)),
           onPressed: _isLoading ? null : _transfer,
           child: _isLoading
               ? const SizedBox(
                   height: 20,
                   width: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
-              : const Text('Execute Transfer'),
+              : const Text('Execute Transfer', style: TextStyle(color: Colors.white)),
         ),
       ],
     );

@@ -186,9 +186,12 @@ class InvoiceRepository {
       payments: const [],
     );
 
-    // 3. Handle Initial Paid Status Stock Deduction & Customer Ledger
+    // 3. Handle Status-based Actions (Stock & Pending Ledger Integration)
     if (status == InvoiceStatus.paid) {
       await _processStockDeduction(userId, newInvoice);
+    } else if (_isOutstandingStatus(status)) {
+      // Pending / partially paid → GIVEN entry so CustomerService totalDue > 0
+      await _processPendingLedgerEntry(userId, customerId, invoiceNumber, total);
     }
 
     return newInvoice;
@@ -269,7 +272,7 @@ class InvoiceRepository {
       payments: oldInvoice?.payments ?? [],
     );
 
-    // 3. Handle Status Changes (Stock Restoration vs Stock Deduction)
+    // 3. Handle Status Changes (Stock Restoration vs Stock Deduction & Pending Ledger)
     if (oldInvoice != null) {
       if (oldInvoice.status != InvoiceStatus.paid &&
           status == InvoiceStatus.paid) {
@@ -278,9 +281,26 @@ class InvoiceRepository {
           status == InvoiceStatus.cancelled) {
         await _processStockRestoration(userId, updatedInvoice);
       }
+
+      // Draft (or cancelled) → outstanding: post GIVEN so totalDue reflects the bill
+      final wasNotOutstanding = !_isOutstandingStatus(oldInvoice.status);
+      if (wasNotOutstanding && _isOutstandingStatus(status)) {
+        await _processPendingLedgerEntry(
+          userId,
+          customerId,
+          invoiceNumber,
+          total,
+        );
+      }
     }
 
     return updatedInvoice;
+  }
+
+  /// Statuses that mean the customer still owes money on the invoice.
+  bool _isOutstandingStatus(InvoiceStatus status) {
+    return status == InvoiceStatus.pending ||
+        status == InvoiceStatus.partiallyPaid;
   }
 
   // =========================================================
@@ -328,6 +348,17 @@ class InvoiceRepository {
           .update({'status': newStatus.value})
           .eq('id', invoiceId);
 
+      // Mirror payment into customer ledger as RECEIVED so outstanding balances drop
+      if (invoice.customerId != null && invoice.customerId!.isNotEmpty) {
+        await _processReceivedLedgerEntry(
+          userId,
+          invoice.customerId,
+          invoice.invoiceNumber,
+          amount,
+          paymentMethod,
+        );
+      }
+
       // Trigger Stock Deduction if status moved to Paid
       if (invoice.status != InvoiceStatus.paid &&
           newStatus == InvoiceStatus.paid) {
@@ -372,7 +403,7 @@ class InvoiceRepository {
   }
 
   // =========================================================
-  // PRIVATE STOCK DEDUCTION / RESTORATION HELPERS
+  // PRIVATE HELPERS (STOCK & PENDING LEDGER)
   // =========================================================
   Future<void> _processStockDeduction(String userId, Invoice invoice) async {
     for (final item in invoice.items) {
@@ -402,5 +433,89 @@ class InvoiceRepository {
         );
       }
     }
+  }
+
+  /// Writes a GIVEN ledger entry so pending/unpaid invoices increase customer totalDue.
+  ///
+  /// Live schema variants use either `user_id`, `created_by`, or both on `transactions`.
+  /// DatabaseService / analytics historically use `created_by`; newer paths use `user_id`.
+  /// We try compatible payloads so the insert does not fail silently.
+  Future<void> _processPendingLedgerEntry(
+    String userId,
+    String? customerId,
+    String invoiceNumber,
+    double totalAmount,
+  ) async {
+    if (customerId == null || customerId.isEmpty || totalAmount <= 0) return;
+
+    final basePayload = <String, dynamic>{
+      'customer_id': customerId,
+      'type': 'GIVEN',
+      'amount': totalAmount,
+      'item': 'Invoice #$invoiceNumber (Pending)',
+      'time': DateTime.now().toIso8601String(),
+    };
+
+    final attempts = <Map<String, dynamic>>[
+      // Preferred: both owner columns (matches user_id requirement + legacy created_by)
+      {...basePayload, 'user_id': userId, 'created_by': userId},
+      // Live path used by DatabaseService.addDueItem / analytics
+      {...basePayload, 'created_by': userId},
+      // Explicit user-requested shape
+      {...basePayload, 'user_id': userId},
+      // Minimal base schema (customer_id + type + amount + item + time)
+      basePayload,
+    ];
+
+    Object? lastError;
+    for (final payload in attempts) {
+      try {
+        await _supabase.from('transactions').insert(payload);
+        return;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+
+    print('Error inserting pending bill transaction: $lastError');
+  }
+
+  /// Writes a RECEIVED ledger entry when invoice payments are collected.
+  Future<void> _processReceivedLedgerEntry(
+    String userId,
+    String? customerId,
+    String invoiceNumber,
+    double amount,
+    String paymentMethod,
+  ) async {
+    if (customerId == null || customerId.isEmpty || amount <= 0) return;
+
+    final basePayload = <String, dynamic>{
+      'customer_id': customerId,
+      'type': 'RECEIVED',
+      'amount': amount,
+      'item': 'Payment for Invoice #$invoiceNumber ($paymentMethod)',
+      'description': 'Payment for Invoice #$invoiceNumber ($paymentMethod)',
+      'time': DateTime.now().toIso8601String(),
+    };
+
+    final attempts = <Map<String, dynamic>>[
+      {...basePayload, 'user_id': userId, 'created_by': userId},
+      {...basePayload, 'created_by': userId},
+      {...basePayload, 'user_id': userId},
+      basePayload,
+    ];
+
+    Object? lastError;
+    for (final payload in attempts) {
+      try {
+        await _supabase.from('transactions').insert(payload);
+        return;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+
+    print('Error inserting invoice payment transaction: $lastError');
   }
 }

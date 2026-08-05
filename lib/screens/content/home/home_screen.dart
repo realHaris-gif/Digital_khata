@@ -1,11 +1,13 @@
 import 'dart:math';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import 'package:digital_khata/screens/content/home/main_home_screen.dart';
-import 'package:digital_khata/screens/content/people/add_people_screen.dart';
 import 'package:digital_khata/screens/content/people/list_people_screen.dart';
 import 'package:digital_khata/widgets/app_sidebar.dart';
+import 'package:digital_khata/theme/app_theme.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 import '../../content/expense/analytics_screen.dart';
 import '../../content/expense/expense_screen.dart';
 
@@ -18,17 +20,15 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int index = 0;
-  late PageController _pageController;
 
-  @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: index);
-  }
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
 
   @override
   void dispose() {
-    _pageController.dispose();
     super.dispose();
   }
 
@@ -37,153 +37,163 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onTabTapped(int newIndex) {
+    if (index == newIndex) return;
     setState(() {
       index = newIndex;
     });
-    _pageController.animateToPage(
-      newIndex,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+  }
+
+  void _handleFabPressed() {
+    switch (index) {
+      case 0:
+      case 1:
+        context.push('/staff/add');
+        break;
+      case 2:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              LanguageController.isUrdu ? 'تجزیات کے اختیارات یا رپورٹ ایکسپورٹ۔' : 'Analytics options or report export.',
+              textDirection: LanguageController.contentTextDirection,
+            ),
+          ),
+        );
+        break;
+      case 3:
+        context.push('/expense_screen');
+        break;
+      default:
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primaryColor = Theme.of(context).colorScheme.primary;
+
+    final activeColor = isDark ? jordyBlue : yinMnBlue;
+    final inactiveColor = isDark ? jordyBlue.withValues(alpha: 0.4) : spaceCadet.withValues(alpha: 0.45);
+    final bgColor = isDark ? AppColors.darkBackground : AppColors.surface1;
 
     return RefreshIndicator(
       onRefresh: _refreshData,
+      color: yinMnBlue,
       child: Scaffold(
+        backgroundColor: bgColor,
         drawer: const Drawer(
           child: AppSidebar(),
         ),
-        extendBody: true,
-        body: PageView(
-          controller: _pageController,
-          physics: const NeverScrollableScrollPhysics(), // Managed via tab bar
-          onPageChanged: (page) {
-            setState(() {
-              index = page;
-            });
-          },
-          children: const [
-            MainHomeScreen(),
-            ListPeopleScreen(),
-            AnalyticsScreen(),
-            ExpenseScreen(),
-          ],
+        extendBody: false,
+        // CRITICAL FIX: Replace PageView with IndexedStack to prevent rendering conflicts
+        // PageView caches children and causes screen blending when GoRouter pushes new routes
+        // IndexedStack only renders the active child, preventing partial visibility of off-screen content
+        body: RepaintBoundary(
+          child: IndexedStack(
+            index: index,
+            children: [
+              ColoredBox(color: bgColor, child: const MainHomeScreen()),
+              ColoredBox(color: bgColor, child: const ListPeopleScreen()),
+              ColoredBox(color: bgColor, child: const AnalyticsScreen()),
+              ColoredBox(color: bgColor, child: const ExpenseScreen()),
+            ],
+          ),
         ),
         bottomNavigationBar: SafeArea(
           child: Container(
-            margin: const EdgeInsets.only(left: 16, right: 16, bottom: 12),
+            margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
             height: 68,
             decoration: BoxDecoration(
+              color: isDark ? AppColors.darkBackground : Colors.white,
               borderRadius: BorderRadius.circular(34),
+              border: Border.all(
+                color: isDark ? AppColors.darkBorder.withValues(alpha: 0.25) : AppColors.borderLight,
+                width: 1.2,
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.12),
+                  color: isDark
+                      ? Colors.black.withValues(alpha: 0.4)
+                      : AppColors.spaceCadet.withValues(alpha: 0.15),
                   blurRadius: 24,
                   spreadRadius: 2,
                   offset: const Offset(0, 8),
                 ),
               ],
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(34),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 16.0, sigmaY: 16.0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(34),
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: isDark
-                          ? [
-                              Colors.white.withValues(alpha: 0.14),
-                              Colors.white.withValues(alpha: 0.04),
-                            ]
-                          : [
-                              Colors.white.withValues(alpha: 0.78),
-                              Colors.white.withValues(alpha: 0.42),
-                            ],
-                    ),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.2)
-                          : Colors.white.withValues(alpha: 0.65),
-                      width: 1.2,
-                    ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                textDirection: LanguageController.contentTextDirection,
+                children: [
+                  _buildNavItem(
+                    tabIndex: 0,
+                    icon: Icons.home_rounded,
+                    label: LanguageController.isUrdu ? 'ہوم' : 'Home',
+                    activeColor: activeColor,
+                    inactiveColor: inactiveColor,
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _buildNavItem(
-                        tabIndex: 0,
-                        icon: Icons.home_rounded,
-                        label: 'Home',
-                      ),
-                      _buildNavItem(
-                        tabIndex: 1,
-                        icon: Icons.people_alt_rounded,
-                        label: 'People',
-                      ),
-                      const SizedBox(width: 48),
-                      _buildNavItem(
-                        tabIndex: 2,
-                        icon: Icons.analytics_rounded,
-                        label: 'Analytics',
-                      ),
-                      _buildNavItem(
-                        tabIndex: 3,
-                        icon: Icons.receipt_long_rounded,
-                        label: 'Expenses',
-                      ),
-                    ],
+                  _buildNavItem(
+                    tabIndex: 1,
+                    icon: Icons.people_alt_rounded,
+                    label: LanguageController.isUrdu ? 'لوگ' : 'People',
+                    activeColor: activeColor,
+                    inactiveColor: inactiveColor,
                   ),
-                ),
+                  const SizedBox(width: 48), // Space for center FAB
+                  _buildNavItem(
+                    tabIndex: 2,
+                    icon: Icons.analytics_rounded,
+                    label: LanguageController.isUrdu ? 'تجزیات' : 'Analytics',
+                    activeColor: activeColor,
+                    inactiveColor: inactiveColor,
+                  ),
+                  _buildNavItem(
+                    tabIndex: 3,
+                    icon: Icons.receipt_long_rounded,
+                    label: LanguageController.isUrdu ? 'اخراجات' : 'Expenses',
+                    activeColor: activeColor,
+                    inactiveColor: inactiveColor,
+                  ),
+                ],
               ),
             ),
           ),
         ),
         floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
         floatingActionButton: Padding(
-          padding: const EdgeInsets.only(bottom: 12.0),
+          padding: const EdgeInsets.only(bottom: 6.0),
           child: FloatingActionButton(
             elevation: 8,
             shape: const CircleBorder(),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute<void>(
-                  builder: (BuildContext context) => const AddPeopleScreen(),
-                ),
-              );
-            },
+            onPressed: _handleFabPressed,
+            backgroundColor: Colors.transparent,
             child: Container(
               width: 56,
               height: 56,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                gradient: LinearGradient(
+                gradient: const LinearGradient(
                   colors: [
-                    Theme.of(context).colorScheme.tertiary,
-                    Theme.of(context).colorScheme.secondary,
-                    primaryColor,
+                    spaceCadet,
+                    yinMnBlue,
+                    jordyBlue,
                   ],
-                  transform: const GradientRotation(pi / 4),
+                  transform: GradientRotation(pi / 4),
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: primaryColor.withValues(alpha: 0.4),
-                    blurRadius: 10,
+                    color: yinMnBlue.withValues(alpha: 0.45),
+                    blurRadius: 12,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: const Icon(Icons.add, color: Colors.white, size: 28),
+              child: Icon(
+                index == 3 ? Icons.post_add_rounded : Icons.add,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
           ),
         ),
@@ -195,11 +205,10 @@ class _HomeScreenState extends State<HomeScreen> {
     required int tabIndex,
     required IconData icon,
     required String label,
+    required Color activeColor,
+    required Color inactiveColor,
   }) {
     final isSelected = index == tabIndex;
-    final primaryColor = Theme.of(context).colorScheme.primary;
-    final inactiveColor =
-        Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5);
 
     return GestureDetector(
       onTap: () => _onTabTapped(tabIndex),
@@ -210,28 +219,30 @@ class _HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: isSelected
             ? BoxDecoration(
-                color: primaryColor.withValues(alpha: 0.14),
+                color: activeColor.withValues(alpha: 0.18),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: primaryColor.withValues(alpha: 0.25),
+                  color: activeColor.withValues(alpha: 0.35),
                   width: 1,
                 ),
               )
             : const BoxDecoration(),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          textDirection: LanguageController.contentTextDirection,
           children: [
             Icon(
               icon,
-              color: isSelected ? primaryColor : inactiveColor,
+              color: isSelected ? activeColor : inactiveColor,
               size: 22,
             ),
             if (isSelected) ...[
               const SizedBox(width: 4),
               Text(
                 label,
+                textDirection: LanguageController.contentTextDirection,
                 style: TextStyle(
-                  color: primaryColor,
+                  color: activeColor,
                   fontWeight: FontWeight.bold,
                   fontSize: 12,
                 ),

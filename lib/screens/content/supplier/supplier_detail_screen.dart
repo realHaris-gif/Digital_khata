@@ -7,6 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:digital_khata/models/supplier_model.dart';
 import 'package:digital_khata/models/supplier_transaction_model.dart';
 import 'package:digital_khata/services/supplier_service.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 
 final supplierDetailProvider =
     FutureProvider.family<Supplier?, String>((ref, supplierId) async {
@@ -30,6 +32,13 @@ class SupplierDetailScreen extends ConsumerWidget {
     required this.supplierId,
   }) : super(key: key);
 
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
+
   void _refreshData(WidgetRef ref) {
     ref.invalidate(supplierDetailProvider(supplierId));
     ref.invalidate(supplierTransactionsProvider(supplierId));
@@ -37,51 +46,128 @@ class SupplierDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return ref.watch(supplierDetailProvider(supplierId)).when(
-      data: (supplier) {
-        if (supplier == null) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Supplier Details')),
-            body: const Center(child: Text('Supplier not found')),
-          );
-        }
+    final isDark = ThemeController.isDarkMode;
 
-        return DefaultTabController(
-          length: 2,
-          child: Scaffold(
-            appBar: AppBar(
-              title: Text(supplier.name),
-              centerTitle: true,
-              elevation: 0,
-              actions: [
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: () => _refreshData(ref),
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(context).colorScheme.copyWith(primary: yinMnBlue),
+        scaffoldBackgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
+      ),
+      child: ref.watch(supplierDetailProvider(supplierId)).when(
+        data: (supplier) {
+          if (supplier == null) {
+            return Scaffold(
+              backgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
+              appBar: AppBar(
+                backgroundColor: isDark ? spaceCadet : Colors.white,
+                elevation: 0,
+                title: Text(
+                  LanguageController.isUrdu ? 'سپلائر کی تفصیلات' : 'Supplier Details',
+                  textDirection: LanguageController.contentTextDirection,
+                  style: TextStyle(color: isDark ? Colors.white : oxfordBlue),
                 ),
-              ],
-              bottom: const TabBar(
-                tabs: [
-                  Tab(text: 'Overview'),
-                  Tab(text: 'Ledger'),
+              ),
+              body: Center(
+                child: Text(
+                  LanguageController.isUrdu ? 'سپلائر نہیں ملا' : 'Supplier not found',
+                  textDirection: LanguageController.contentTextDirection,
+                  style: TextStyle(color: isDark ? lavender : Colors.grey),
+                ),
+              ),
+            );
+          }
+
+          return DefaultTabController(
+            length: 2,
+            child: Scaffold(
+              backgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
+              appBar: AppBar(
+                title: Text(
+                  supplier.name,
+                  textDirection: LanguageController.contentTextDirection,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : oxfordBlue,
+                  ),
+                ),
+                centerTitle: true,
+                elevation: 0,
+                backgroundColor: isDark ? spaceCadet : Colors.white,
+                surfaceTintColor: Colors.transparent,
+                leading: IconButton(
+                  icon: Icon(
+                    Icons.chevron_left_rounded,
+                    size: 28,
+                    color: isDark ? jordyBlue : oxfordBlue,
+                  ),
+                  onPressed: () => Navigator.pop(context),
+                ),
+                actions: [
+                  IconButton(
+                    icon: Icon(Icons.refresh_rounded, color: isDark ? jordyBlue : yinMnBlue),
+                    onPressed: () => _refreshData(ref),
+                  ),
+                ],
+                bottom: TabBar(
+                  indicatorColor: isDark ? jordyBlue : yinMnBlue,
+                  labelColor: isDark ? jordyBlue : yinMnBlue,
+                  unselectedLabelColor: isDark ? lavender.withOpacity(0.6) : Colors.grey.shade600,
+                  tabs: [
+                    Tab(
+                      child: Text(
+                        LanguageController.isUrdu ? 'جائزہ' : 'Overview',
+                        textDirection: LanguageController.contentTextDirection,
+                      ),
+                    ),
+                    Tab(
+                      child: Text(
+                        LanguageController.isUrdu ? 'کھاتہ' : 'Ledger',
+                        textDirection: LanguageController.contentTextDirection,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              body: TabBarView(
+                children: [
+                  _buildOverviewTab(context, supplier, ref, isDark),
+                  _buildLedgerTab(context, supplier, ref, isDark),
                 ],
               ),
             ),
-            body: TabBarView(
-              children: [
-                _buildOverviewTab(context, supplier, ref),
-                _buildLedgerTab(context, supplier, ref),
-              ],
+          );
+        },
+        loading: () => Scaffold(
+          backgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
+          appBar: AppBar(
+            backgroundColor: isDark ? spaceCadet : Colors.white,
+            title: Text(
+              LanguageController.isUrdu ? 'سپلائر کی تفصیلات' : 'Supplier Details',
+              textDirection: LanguageController.contentTextDirection,
+              style: TextStyle(color: isDark ? Colors.white : oxfordBlue),
             ),
           ),
-        );
-      },
-      loading: () => Scaffold(
-        appBar: AppBar(title: const Text('Supplier Details')),
-        body: const Center(child: CircularProgressIndicator()),
-      ),
-      error: (error, stackTrace) => Scaffold(
-        appBar: AppBar(title: const Text('Supplier Details')),
-        body: Center(child: Text('Error: $error')),
+          body: _buildSkeletonLoadingState(isDark),
+        ),
+        error: (error, stackTrace) => Scaffold(
+          backgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
+          appBar: AppBar(
+            backgroundColor: isDark ? spaceCadet : Colors.white,
+            title: Text(
+              LanguageController.isUrdu ? 'سپلائر کی تفصیلات' : 'Supplier Details',
+              textDirection: LanguageController.contentTextDirection,
+              style: TextStyle(color: isDark ? Colors.white : oxfordBlue),
+            ),
+          ),
+          body: Center(
+            child: Text(
+              LanguageController.isUrdu ? 'خرابی: $error' : 'Error: $error',
+              textDirection: LanguageController.contentTextDirection,
+              style: const TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -90,135 +176,170 @@ class SupplierDetailScreen extends ConsumerWidget {
     BuildContext context,
     Supplier supplier,
     WidgetRef ref,
+    bool isDark,
   ) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
+        textDirection: LanguageController.contentTextDirection,
         children: [
           // Balance card
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? spaceCadet.withOpacity(0.6) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Colors.grey.shade200),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Current Balance',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Rs. ${supplier.currentBalance.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: supplier.currentBalance > 0
-                          ? Colors.red
-                          : Colors.green,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildInfoRow(
-                          'Opening Balance',
-                          'Rs. ${supplier.openingBalance.toStringAsFixed(2)}',
-                        ),
-                      ),
-                      Expanded(
-                        child: _buildInfoRow(
-                          'Created On',
-                          DateFormat('MMM dd, yyyy')
-                              .format(supplier.createdAt),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              border: Border.all(
+                color: isDark ? jordyBlue.withOpacity(0.15) : lavender,
               ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              textDirection: LanguageController.contentTextDirection,
+              children: [
+                Text(
+                  LanguageController.isUrdu ? 'موجودہ بیلنس' : 'Current Balance',
+                  textDirection: LanguageController.contentTextDirection,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Rs. ${supplier.currentBalance.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: supplier.currentBalance > 0
+                        ? Colors.red.shade600
+                        : Colors.green.shade600,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  textDirection: LanguageController.contentTextDirection,
+                  children: [
+                    Expanded(
+                      child: _buildInfoRow(
+                        LanguageController.isUrdu ? 'افتتاحی بیلنس' : 'Opening Balance',
+                        'Rs. ${supplier.openingBalance.toStringAsFixed(2)}',
+                        isDark,
+                      ),
+                    ),
+                    Expanded(
+                      child: _buildInfoRow(
+                        LanguageController.isUrdu ? 'تخلیق کی تاریخ' : 'Created On',
+                        DateFormat('MMM dd, yyyy')
+                            .format(supplier.createdAt),
+                        isDark,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 20),
 
           // Supplier info
-          Card(
-            elevation: 0,
-            shape: RoundedRectangleBorder(
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: isDark ? spaceCadet.withOpacity(0.6) : Colors.white,
               borderRadius: BorderRadius.circular(16),
-              side: BorderSide(color: Colors.grey.shade200),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Contact & Details',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  if (supplier.phone != null && supplier.phone!.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        const Icon(Icons.phone, size: 20, color: Colors.grey),
-                        const SizedBox(width: 12),
-                        Text(supplier.phone!),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  if (supplier.address != null && supplier.address!.isNotEmpty) ...[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.location_on, size: 20, color: Colors.grey),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(supplier.address!)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  if (supplier.notes != null && supplier.notes!.isNotEmpty) ...[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.note, size: 20, color: Colors.grey),
-                        const SizedBox(width: 12),
-                        Expanded(child: Text(supplier.notes!)),
-                      ],
-                    ),
-                  ],
-                ],
+              border: Border.all(
+                color: isDark ? jordyBlue.withOpacity(0.15) : lavender,
               ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              textDirection: LanguageController.contentTextDirection,
+              children: [
+                Text(
+                  LanguageController.isUrdu ? 'رابطہ اور تفصیلات' : 'Contact & Details',
+                  textDirection: LanguageController.contentTextDirection,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : oxfordBlue,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                if (supplier.phone != null && supplier.phone!.isNotEmpty) ...[
+                  Row(
+                    textDirection: LanguageController.contentTextDirection,
+                    children: [
+                      Icon(Icons.phone_outlined, size: 20, color: isDark ? jordyBlue : yinMnBlue),
+                      const SizedBox(width: 12),
+                      Text(
+                        supplier.phone!,
+                        style: TextStyle(color: isDark ? lavender : Colors.grey.shade800),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (supplier.address != null && supplier.address!.isNotEmpty) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    textDirection: LanguageController.contentTextDirection,
+                    children: [
+                      Icon(Icons.location_on_outlined, size: 20, color: isDark ? jordyBlue : yinMnBlue),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          supplier.address!,
+                          textDirection: LanguageController.contentTextDirection,
+                          style: TextStyle(color: isDark ? lavender : Colors.grey.shade800),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                if (supplier.notes != null && supplier.notes!.isNotEmpty) ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    textDirection: LanguageController.contentTextDirection,
+                    children: [
+                      Icon(Icons.note_outlined, size: 20, color: isDark ? jordyBlue : yinMnBlue),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          supplier.notes!,
+                          textDirection: LanguageController.contentTextDirection,
+                          style: TextStyle(color: isDark ? lavender : Colors.grey.shade800),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(height: 20),
 
           // Quick actions
           Row(
+            textDirection: LanguageController.contentTextDirection,
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  icon: const Icon(Icons.add_card),
-                  label: const Text('Add Payment'),
+                  icon: const Icon(Icons.add_card_rounded),
+                  label: Text(
+                    LanguageController.isUrdu ? 'ادائیگی شامل کریں' : 'Add Payment',
+                    textDirection: LanguageController.contentTextDirection,
+                  ),
                   onPressed: () {
                     _showAddTransactionDialog(context, supplier, ref);
                   },
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: isDark ? jordyBlue : yinMnBlue,
+                    foregroundColor: isDark ? oxfordBlue : Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -228,8 +349,12 @@ class SupplierDetailScreen extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Edit'),
+                  icon: Icon(Icons.edit_rounded, color: isDark ? jordyBlue : yinMnBlue),
+                  label: Text(
+                    LanguageController.isUrdu ? 'ترمیم' : 'Edit',
+                    textDirection: LanguageController.contentTextDirection,
+                    style: TextStyle(color: isDark ? jordyBlue : yinMnBlue),
+                  ),
                   onPressed: () async {
                     final res = await context.push('/edit-supplier/${supplier.id}');
                     if (res == true) {
@@ -238,6 +363,7 @@ class SupplierDetailScreen extends ConsumerWidget {
                   },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: isDark ? jordyBlue.withOpacity(0.4) : yinMnBlue),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -255,17 +381,23 @@ class SupplierDetailScreen extends ConsumerWidget {
     BuildContext context,
     Supplier supplier,
     WidgetRef ref,
+    bool isDark,
   ) {
     return ref.watch(supplierTransactionsProvider(supplier.id)).when(
       data: (transactions) {
         if (transactions.isEmpty) {
-          return const Center(
+          return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
+              textDirection: LanguageController.contentTextDirection,
               children: [
-                Icon(Icons.receipt_long, size: 64, color: Colors.grey),
-                SizedBox(height: 16),
-                Text('No transactions recorded yet.'),
+                Icon(Icons.receipt_long_rounded, size: 64, color: isDark ? lavender.withOpacity(0.4) : Colors.grey.shade400),
+                const SizedBox(height: 16),
+                Text(
+                  LanguageController.isUrdu ? 'ابھی تک کوئی لین دین درج نہیں کیا گیا۔' : 'No transactions recorded yet.',
+                  textDirection: LanguageController.contentTextDirection,
+                  style: TextStyle(color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600),
+                ),
               ],
             ),
           );
@@ -276,13 +408,17 @@ class SupplierDetailScreen extends ConsumerWidget {
           itemCount: transactions.length,
           itemBuilder: (context, index) {
             final transaction = transactions[index];
-            return _buildTransactionTile(context, transaction);
+            return _buildTransactionTile(context, transaction, isDark);
           },
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
+      loading: () => _buildSkeletonLoadingState(isDark),
       error: (error, stackTrace) => Center(
-        child: Text('Error: $error'),
+        child: Text(
+          LanguageController.isUrdu ? 'خرابی: $error' : 'Error: $error',
+          textDirection: LanguageController.contentTextDirection,
+          style: const TextStyle(color: Colors.redAccent),
+        ),
       ),
     );
   }
@@ -290,39 +426,53 @@ class SupplierDetailScreen extends ConsumerWidget {
   Widget _buildTransactionTile(
     BuildContext context,
     SupplierTransaction transaction,
+    bool isDark,
   ) {
     final isGiven = transaction.type == SupplierTransactionType.given;
-    final color = isGiven ? Colors.red : Colors.green;
+    final color = isGiven ? Colors.red.shade600 : Colors.green.shade600;
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
+    final defaultDescription = isGiven 
+        ? (LanguageController.isUrdu ? 'رقم دی گئی' : 'Money Given') 
+        : (LanguageController.isUrdu ? 'رقم وصول ہوئی' : 'Money Received');
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(
+        color: isDark ? spaceCadet.withOpacity(0.6) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+        border: Border.all(
+          color: isDark ? jordyBlue.withOpacity(0.15) : lavender,
+        ),
       ),
       child: ListTile(
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        leading: CircleAvatar(
-          backgroundColor: color.withOpacity(0.1),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
           child: Icon(
-            isGiven ? Icons.arrow_upward : Icons.arrow_downward,
+            isGiven ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
             color: color,
+            size: 18,
           ),
         ),
         title: Text(
           transaction.description != null && transaction.description!.isNotEmpty
               ? transaction.description!
-              : (isGiven ? 'Money Given' : 'Money Received'),
-          style: const TextStyle(fontWeight: FontWeight.w600),
+              : defaultDescription,
+          textDirection: LanguageController.contentTextDirection,
+          style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white : oxfordBlue),
         ),
         subtitle: Text(
-          DateFormat('MMM dd, yyyy - hh:mm a')
+          DateFormat('MMM dd, yyyy • hh:mm a')
               .format(transaction.createdAt),
-          style: const TextStyle(fontSize: 12),
+          style: TextStyle(fontSize: 12, color: isDark ? lavender.withOpacity(0.6) : Colors.grey.shade600),
         ),
         trailing: Text(
           '${isGiven ? '+' : '-'}Rs. ${transaction.amount.toStringAsFixed(2)}',
+
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: color,
@@ -333,23 +483,26 @@ class SupplierDetailScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(String label, String value, bool isDark) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      textDirection: LanguageController.contentTextDirection,
       children: [
         Text(
           label,
-          style: const TextStyle(
+          textDirection: LanguageController.contentTextDirection,
+          style: TextStyle(
             fontSize: 12,
-            color: Colors.grey,
+            color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 14,
+            color: isDark ? Colors.white : oxfordBlue,
           ),
         ),
       ],
@@ -367,6 +520,31 @@ class SupplierDetailScreen extends ConsumerWidget {
         supplierId: supplier.id,
         onSuccess: () => _refreshData(ref),
       ),
+    );
+  }
+
+  Widget _buildSkeletonLoadingState(bool isDark) {
+    final baseColor = isDark ? spaceCadet.withOpacity(0.4) : lavender.withOpacity(0.6);
+    final highlightColor = isDark ? yinMnBlue.withOpacity(0.7) : Colors.white;
+
+    return TweenAnimationBuilder<double>(
+      tween: Tween<double>(begin: 0.3, end: 1.0),
+      duration: const Duration(milliseconds: 800),
+      builder: (context, value, child) {
+        final shimmerColor = Color.lerp(baseColor, highlightColor, value)!;
+
+        return Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            textDirection: LanguageController.contentTextDirection,
+            children: [
+              Container(width: double.infinity, height: 150, decoration: BoxDecoration(color: shimmerColor, borderRadius: BorderRadius.circular(16))),
+              const SizedBox(height: 16),
+              Container(width: double.infinity, height: 180, decoration: BoxDecoration(color: shimmerColor, borderRadius: BorderRadius.circular(16))),
+            ],
+          ),
+        );
+      },
     );
   }
 }
@@ -412,7 +590,12 @@ class _AddTransactionDialogState extends ConsumerState<_AddTransactionDialog> {
 
     if (amountText.isEmpty || parsedAmount == null || parsedAmount <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a valid amount')),
+        SnackBar(
+          content: Text(
+            LanguageController.isUrdu ? 'براہ کرم درست رقم درج کریں' : 'Please enter a valid amount',
+            textDirection: LanguageController.contentTextDirection,
+          ),
+        ),
       );
       return;
     }
@@ -425,7 +608,7 @@ class _AddTransactionDialogState extends ConsumerState<_AddTransactionDialog> {
       final userId = supabase.auth.currentUser?.id ?? '';
 
       if (userId.isEmpty) {
-        throw Exception('User is not authenticated.');
+        throw Exception(LanguageController.isUrdu ? 'صارف تصدیق شدہ نہیں ہے۔' : 'User is not authenticated.');
       }
 
       await repository.addTransaction(
@@ -442,13 +625,23 @@ class _AddTransactionDialogState extends ConsumerState<_AddTransactionDialog> {
         Navigator.pop(context);
         widget.onSuccess();
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Transaction added successfully')),
+          SnackBar(
+            content: Text(
+              LanguageController.isUrdu ? 'لین دین کامیابی کے ساتھ شامل کر لیا گیا' : 'Transaction added successfully',
+              textDirection: LanguageController.contentTextDirection,
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Text(
+              LanguageController.isUrdu ? 'خرابی: $e' : 'Error: $e',
+              textDirection: LanguageController.contentTextDirection,
+            ),
+          ),
         );
       }
     } finally {
@@ -460,26 +653,41 @@ class _AddTransactionDialogState extends ConsumerState<_AddTransactionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
+
     return AlertDialog(
-      title: const Text('Add Supplier Transaction'),
+      backgroundColor: isDark ? SupplierDetailScreen.spaceCadet : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      title: Text(
+        LanguageController.isUrdu ? 'سپلائر کا لین دین شامل کریں' : 'Add Supplier Transaction',
+        textDirection: LanguageController.contentTextDirection,
+        style: TextStyle(color: isDark ? Colors.white : SupplierDetailScreen.oxfordBlue, fontWeight: FontWeight.bold),
+      ),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
+          textDirection: LanguageController.contentTextDirection,
           children: [
             // Type selection
             Row(
+              textDirection: LanguageController.contentTextDirection,
               children: [
                 Expanded(
                   child: RadioListTile<SupplierTransactionType>(
                     value: SupplierTransactionType.given,
                     groupValue: _selectedType,
+                    activeColor: isDark ? SupplierDetailScreen.jordyBlue : SupplierDetailScreen.yinMnBlue,
                     onChanged: (value) {
                       if (value != null) {
                         setState(() => _selectedType = value);
                       }
                     },
-                    title: const Text('Given'),
+                    title: Text(
+                      LanguageController.isUrdu ? 'دی گئی' : 'Given',
+                      textDirection: LanguageController.contentTextDirection,
+                      style: TextStyle(color: isDark ? Colors.white : SupplierDetailScreen.oxfordBlue),
+                    ),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -488,12 +696,17 @@ class _AddTransactionDialogState extends ConsumerState<_AddTransactionDialog> {
                   child: RadioListTile<SupplierTransactionType>(
                     value: SupplierTransactionType.received,
                     groupValue: _selectedType,
+                    activeColor: isDark ? SupplierDetailScreen.jordyBlue : SupplierDetailScreen.yinMnBlue,
                     onChanged: (value) {
                       if (value != null) {
                         setState(() => _selectedType = value);
                       }
                     },
-                    title: const Text('Received'),
+                    title: Text(
+                      LanguageController.isUrdu ? 'وصول ہوئی' : 'Received',
+                      textDirection: LanguageController.contentTextDirection,
+                      style: TextStyle(color: isDark ? Colors.white : SupplierDetailScreen.oxfordBlue),
+                    ),
                     dense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -505,13 +718,28 @@ class _AddTransactionDialogState extends ConsumerState<_AddTransactionDialog> {
             // Amount field
             TextField(
               controller: _amountController,
+              style: TextStyle(color: isDark ? Colors.white : SupplierDetailScreen.oxfordBlue),
               decoration: InputDecoration(
-                labelText: 'Amount',
+                labelText: LanguageController.isUrdu ? 'رقم' : 'Amount',
                 hintText: '0.00',
+                labelStyle: TextStyle(color: isDark ? SupplierDetailScreen.jordyBlue : SupplierDetailScreen.yinMnBlue),
+                hintStyle: TextStyle(color: isDark ? SupplierDetailScreen.lavender.withOpacity(0.4) : Colors.grey.shade400),
+                filled: true,
+                fillColor: isDark ? SupplierDetailScreen.oxfordBlue.withOpacity(0.5) : const Color(0xFFF1F5F9),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: isDark ? SupplierDetailScreen.jordyBlue.withOpacity(0.2) : Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: isDark ? SupplierDetailScreen.jordyBlue.withOpacity(0.2) : Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: isDark ? SupplierDetailScreen.jordyBlue : SupplierDetailScreen.yinMnBlue, width: 1.5),
                 ),
                 prefixText: 'Rs. ',
+                prefixStyle: TextStyle(color: isDark ? Colors.white : SupplierDetailScreen.oxfordBlue, fontWeight: FontWeight.bold),
               ),
               keyboardType:
                   const TextInputType.numberWithOptions(decimal: true),
@@ -521,11 +749,26 @@ class _AddTransactionDialogState extends ConsumerState<_AddTransactionDialog> {
             // Description field
             TextField(
               controller: _descriptionController,
+              textDirection: LanguageController.contentTextDirection,
+              style: TextStyle(color: isDark ? Colors.white : SupplierDetailScreen.oxfordBlue),
               decoration: InputDecoration(
-                labelText: 'Description (Optional)',
-                hintText: 'e.g., Payment for order #123',
+                labelText: LanguageController.isUrdu ? 'تفصیل (اختیاری)' : 'Description (Optional)',
+                hintText: LanguageController.isUrdu ? 'مثال کے طور پر، آرڈر #123 کی ادائیگی' : 'e.g., Payment for order #123',
+                labelStyle: TextStyle(color: isDark ? SupplierDetailScreen.jordyBlue : SupplierDetailScreen.yinMnBlue),
+                hintStyle: TextStyle(color: isDark ? SupplierDetailScreen.lavender.withOpacity(0.4) : Colors.grey.shade400),
+                filled: true,
+                fillColor: isDark ? SupplierDetailScreen.oxfordBlue.withOpacity(0.5) : const Color(0xFFF1F5F9),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: isDark ? SupplierDetailScreen.jordyBlue.withOpacity(0.2) : Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: isDark ? SupplierDetailScreen.jordyBlue.withOpacity(0.2) : Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: isDark ? SupplierDetailScreen.jordyBlue : SupplierDetailScreen.yinMnBlue, width: 1.5),
                 ),
               ),
             ),
@@ -535,9 +778,19 @@ class _AddTransactionDialogState extends ConsumerState<_AddTransactionDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(
+            LanguageController.isUrdu ? 'منسوخ کریں' : 'Cancel',
+            textDirection: LanguageController.contentTextDirection,
+            style: TextStyle(color: isDark ? SupplierDetailScreen.lavender : Colors.grey.shade700),
+          ),
         ),
         ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: isDark ? SupplierDetailScreen.jordyBlue : SupplierDetailScreen.yinMnBlue,
+            foregroundColor: isDark ? SupplierDetailScreen.oxfordBlue : Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
           onPressed: _isLoading ? null : _addTransaction,
           child: _isLoading
               ? const SizedBox(
@@ -545,7 +798,11 @@ class _AddTransactionDialogState extends ConsumerState<_AddTransactionDialog> {
                   width: 20,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 )
-              : const Text('Add Transaction'),
+              : Text(
+                  LanguageController.isUrdu ? 'لین دین شامل کریں' : 'Add Transaction',
+                  textDirection: LanguageController.contentTextDirection,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
         ),
       ],
     );

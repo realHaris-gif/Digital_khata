@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/theme/app_theme.dart';
 
 class IosCalculatorScreen extends StatefulWidget {
   const IosCalculatorScreen({super.key});
@@ -92,80 +95,129 @@ class _IosCalculatorScreenState extends State<IosCalculatorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+    final isDark = ThemeController.isDarkMode;
+
+    return RepaintBoundary(
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.yinMnBlue),
+          scaffoldBackgroundColor: isDark ? AppColors.darkBackground : AppColors.surface1,
         ),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Display Output Area
-            Expanded(
-              child: Container(
-                alignment: Alignment.bottomRight,
-                padding: const EdgeInsets.all(24),
-                child: FittedBox(
-                  alignment: Alignment.centerRight,
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    _display,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 84,
-                      fontWeight: FontWeight.w300,
-                      fontFamily: 'SF Pro Display',
+        child: Scaffold(
+          backgroundColor: isDark ? AppColors.darkBackground : AppColors.surface1,
+          appBar: AppBar(
+            elevation: 0,
+            backgroundColor: isDark ? AppColors.darkSurface : Colors.white,
+            surfaceTintColor: Colors.transparent,
+            leading: IconButton(
+              icon: Icon(
+                Icons.chevron_left_rounded,
+                size: 28,
+                color: isDark ? AppColors.jordyBlue : AppColors.oxfordBlue,
+              ),
+              onPressed: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/');
+                }
+              },
+            ),
+            title: Text(
+              'Calculator',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : AppColors.oxfordBlue,
+              ),
+            ),
+            centerTitle: true,
+          ),
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Enhanced Beige Display Output Area
+                Container(
+                  margin: const EdgeInsets.all(AppSpacing.lg),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                  alignment: Alignment.bottomRight,
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.darkSurface.withValues(alpha: 0.8) : const Color(0xFFFBF7EE), // Elegant Beige
+                    borderRadius: BorderRadius.circular(AppRadius.xxl),
+                    border: Border.all(
+                      color: isDark ? AppColors.jordyBlue.withValues(alpha: 0.2) : const Color(0xFFEFE8D8),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: SizedBox(
+                    height: 90,
+                    child: FittedBox(
+                      alignment: Alignment.centerRight,
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        _display,
+                        style: TextStyle(
+                          color: isDark ? Colors.white : AppColors.oxfordBlue,
+                          fontSize: 64,
+                          fontWeight: FontWeight.w400,
+                          fontFamily: 'SF Pro Display',
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
-            ),
 
-            // Button Keypad Grid (iOS Layout)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Column(
-                children: [
-                  _buildButtonRow(['AC', '+/-', '%', '÷'],
-                      topRow: true),
-                  const SizedBox(height: 12),
-                  _buildButtonRow(['7', '8', '9', '×']),
-                  const SizedBox(height: 12),
-                  _buildButtonRow(['4', '5', '6', '−']),
-                  const SizedBox(height: 12),
-                  _buildButtonRow(['1', '2', '3', '+']),
-                  const SizedBox(height: 12),
-                  _buildBottomRow(),
-                  const SizedBox(height: 16),
-                ],
-              ),
+                // Button Keypad Grid (iOS Layout with Custom Blue Theme)
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.lg, 0, AppSpacing.lg, 12),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        _buildButtonRow(['AC', '+/-', '%', '÷'], topRow: true, isDark: isDark),
+                        const SizedBox(height: 12),
+                        _buildButtonRow(['7', '8', '9', '×'], isDark: isDark),
+                        const SizedBox(height: 12),
+                        _buildButtonRow(['4', '5', '6', '−'], isDark: isDark),
+                        const SizedBox(height: 12),
+                        _buildButtonRow(['1', '2', '3', '+'], isDark: isDark),
+                        const SizedBox(height: 12),
+                        _buildBottomRow(isDark),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildButtonRow(List<String> texts, {bool topRow = false}) {
+  Widget _buildButtonRow(List<String> texts, {bool topRow = false, required bool isDark}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: texts.map((t) {
         final isOperator = ['÷', '×', '−', '+', '='].contains(t);
         Color btnColor;
-        Color txtColor = Colors.white;
+        Color txtColor = isDark ? Colors.white : AppColors.oxfordBlue;
 
         if (isOperator) {
-          btnColor = const Color(0xFFFF9F0A); // iOS Orange
+          btnColor = isDark ? AppColors.jordyBlue : AppColors.yinMnBlue; // Primary Theme Accent
+          txtColor = isDark ? AppColors.oxfordBlue : Colors.white;
         } else if (topRow) {
-          btnColor = const Color(0xFFA5A5A5); // iOS Light Gray
-          txtColor = Colors.black;
+          btnColor = isDark ? AppColors.darkSurface : AppColors.lavender; // Secondary UI Tone
+          txtColor = isDark ? AppColors.lavender : AppColors.oxfordBlue;
         } else {
-          btnColor = const Color(0xFF333333); // iOS Dark Gray
+          btnColor = isDark ? AppColors.darkSurface.withValues(alpha: 0.6) : Colors.white; // Standard Button
         }
 
         return _buildCalcButton(
@@ -173,12 +225,13 @@ class _IosCalculatorScreenState extends State<IosCalculatorScreen> {
           bgColor: btnColor,
           textColor: txtColor,
           isSelected: _operator == t && _shouldResetDisplay,
+          isDark: isDark,
         );
       }).toList(),
     );
   }
 
-  Widget _buildBottomRow() {
+  Widget _buildBottomRow(bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -187,21 +240,24 @@ class _IosCalculatorScreenState extends State<IosCalculatorScreen> {
           flex: 2,
           child: InkWell(
             onTap: () => _onButtonTap('0'),
-            borderRadius: BorderRadius.circular(40),
+            borderRadius: BorderRadius.circular(36),
             child: Container(
               height: 72,
               padding: const EdgeInsets.only(left: 28),
               alignment: Alignment.centerLeft,
               decoration: BoxDecoration(
-                color: const Color(0xFF333333),
-                borderRadius: BorderRadius.circular(40),
+                color: isDark ? AppColors.darkSurface.withValues(alpha: 0.6) : Colors.white,
+                borderRadius: BorderRadius.circular(36),
+                border: Border.all(
+                  color: isDark ? AppColors.jordyBlue.withValues(alpha: 0.15) : AppColors.lavender,
+                ),
               ),
-              child: const Text(
+              child: Text(
                 '0',
                 style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : AppColors.oxfordBlue,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),
@@ -211,16 +267,18 @@ class _IosCalculatorScreenState extends State<IosCalculatorScreen> {
         Expanded(
           child: _buildCalcButton(
             text: '.',
-            bgColor: const Color(0xFF333333),
-            textColor: Colors.white,
+            bgColor: isDark ? AppColors.darkSurface.withValues(alpha: 0.6) : Colors.white,
+            textColor: isDark ? Colors.white : AppColors.oxfordBlue,
+            isDark: isDark,
           ),
         ),
         const SizedBox(width: 12),
         Expanded(
           child: _buildCalcButton(
             text: '=',
-            bgColor: const Color(0xFFFF9F0A),
-            textColor: Colors.white,
+            bgColor: isDark ? AppColors.jordyBlue : AppColors.yinMnBlue,
+            textColor: isDark ? AppColors.oxfordBlue : Colors.white,
+            isDark: isDark,
           ),
         ),
       ],
@@ -231,24 +289,32 @@ class _IosCalculatorScreenState extends State<IosCalculatorScreen> {
     required String text,
     required Color bgColor,
     required Color textColor,
+    required bool isDark,
     bool isSelected = false,
   }) {
     return SizedBox(
       width: 72,
       height: 72,
       child: Material(
-        color: isSelected ? Colors.white : bgColor,
-        shape: const CircleBorder(),
+        color: isSelected ? AppColors.lavender : bgColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(36),
+          side: BorderSide(
+            color: isDark ? AppColors.jordyBlue.withValues(alpha: 0.15) : AppColors.lavender,
+          ),
+        ),
         child: InkWell(
-          customBorder: const CircleBorder(),
+          customBorder: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(36),
+          ),
           onTap: () => _onButtonTap(text),
           child: Center(
             child: Text(
               text,
               style: TextStyle(
-                color: isSelected ? const Color(0xFFFF9F0A) : textColor,
-                fontSize: 30,
-                fontWeight: FontWeight.w500,
+                color: isSelected ? AppColors.oxfordBlue : textColor,
+                fontSize: 28,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 import 'package:digital_khata/l10n/app_localizations.dart';
 import 'package:digital_khata/models/category_model.dart';
 import 'package:digital_khata/services/inventory_service.dart';
@@ -18,6 +20,13 @@ final categoriesProvider =
 });
 
 class CategoriesScreen extends ConsumerWidget {
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
+
   const CategoriesScreen({Key? key}) : super(key: key);
 
   void _refresh(WidgetRef ref, String userId) {
@@ -31,6 +40,7 @@ class CategoriesScreen extends ConsumerWidget {
     Category? categoryToEdit,
   }) {
     final isEditing = categoryToEdit != null;
+    final isDark = ThemeController.isDarkMode;
     final nameController =
         TextEditingController(text: categoryToEdit?.name ?? '');
     final descController =
@@ -39,17 +49,17 @@ class CategoriesScreen extends ConsumerWidget {
 
     Color selectedColor = categoryToEdit != null
         ? categoryToEdit.getDisplayColor()
-        : Colors.teal;
+        : yinMnBlue;
 
     final presetColors = [
-      Colors.teal,
+      yinMnBlue,
+      spaceCadet,
+      jordyBlue,
       Colors.blue,
       Colors.purple,
       Colors.orange,
-      Colors.red,
       Colors.green,
       Colors.indigo,
-      Colors.brown,
     ];
 
     showDialog(
@@ -58,44 +68,54 @@ class CategoriesScreen extends ConsumerWidget {
         return StatefulBuilder(
           builder: (context, setModalState) {
             return AlertDialog(
+              backgroundColor: isDark ? spaceCadet : Colors.white,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppFormTokens.radiusLg),
               ),
-              title: Text(isEditing ? 'Edit Category' : 'New Category'),
+              title: Text(
+                isEditing 
+                    ? (LanguageController.isUrdu ? 'زمرے میں ترمیم کریں' : 'Edit Category') 
+                    : (LanguageController.isUrdu ? 'نیا زمرہ' : 'New Category'),
+                textDirection: LanguageController.contentTextDirection,
+                style: TextStyle(color: isDark ? Colors.white : oxfordBlue),
+              ),
               content: Form(
                 key: formKey,
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
+                    textDirection: LanguageController.contentTextDirection,
                     children: [
                       AppFormTextField(
                         controller: nameController,
                         autofocus: true,
-                        labelText: 'Category Name *',
-                        hintText: 'e.g. Groceries',
+                        labelText: LanguageController.isUrdu ? 'زمرے کا نام *' : 'Category Name *',
+                        hintText: LanguageController.isUrdu ? 'مثال کے طور پر، کریانہ' : 'e.g. Groceries',
                         prefixIcon: Icons.category_outlined,
                         textCapitalization: TextCapitalization.words,
                         textInputAction: TextInputAction.next,
                         validator: (val) => val == null || val.trim().isEmpty
-                            ? 'Enter category name'
+                            ? (LanguageController.isUrdu ? 'زمرے کا نام درج کریں' : 'Enter category name')
                             : null,
                       ),
                       const SizedBox(height: 12),
                       AppFormTextField(
                         controller: descController,
-                        labelText: 'Description (Optional)',
-                        hintText: 'Short description',
+                        labelText: LanguageController.isUrdu ? 'تفصیل (اختیاری)' : 'Description (Optional)',
+                        hintText: LanguageController.isUrdu ? 'مختصر تفصیل' : 'Short description',
                         prefixIcon: Icons.notes_outlined,
                         textCapitalization: TextCapitalization.sentences,
                         textInputAction: TextInputAction.done,
                       ),
                       const SizedBox(height: 16),
                       Align(
-                        alignment: Alignment.centerLeft,
+                        alignment: LanguageController.isUrdu ? Alignment.centerRight : Alignment.centerLeft,
                         child: Text(
-                          'Category Color',
+                          LanguageController.isUrdu ? 'زمرے کا رنگ' : 'Category Color',
+                          textDirection: LanguageController.contentTextDirection,
                           style: Theme.of(context).textTheme.labelLarge?.copyWith(
                                 fontWeight: FontWeight.w700,
+                                color: isDark ? lavender : oxfordBlue,
                               ),
                         ),
                       ),
@@ -103,6 +123,7 @@ class CategoriesScreen extends ConsumerWidget {
                       Wrap(
                         spacing: 10,
                         runSpacing: 10,
+                        textDirection: LanguageController.contentTextDirection,
                         children: presetColors.map((color) {
                           final isSelected = selectedColor.value == color.value;
                           return GestureDetector(
@@ -147,11 +168,13 @@ class CategoriesScreen extends ConsumerWidget {
               actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               actions: [
                 FormSecondaryButton(
-                  label: 'Cancel',
+                  label: LanguageController.isUrdu ? 'منسوخ کریں' : 'Cancel',
                   onPressed: () => Navigator.pop(ctx),
                 ),
                 FormPrimaryButton(
-                  label: isEditing ? 'Update' : 'Create',
+                  label: isEditing 
+                      ? (LanguageController.isUrdu ? 'اپ ڈیٹ کریں' : 'Update') 
+                      : (LanguageController.isUrdu ? 'تخلیق کریں' : 'Create'),
                   onPressed: () async {
                     if (!formKey.currentState!.validate()) return;
                     final repo = ref.read(inventoryRepoProvider);
@@ -194,110 +217,162 @@ class CategoriesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final userId = Supabase.instance.client.auth.currentUser?.id ?? '';
+    final isDark = ThemeController.isDarkMode;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inventory Categories'),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () => _refresh(ref, userId),
-          ),
-        ],
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: yinMnBlue,
+            ),
       ),
-      body: userId.isEmpty
-          ? Center(child: Text(l10n.error))
-          : ref.watch(categoriesProvider(userId)).when(
-                data: (categories) {
-                  if (categories.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.category_outlined,
-                              size: 64, color: Colors.grey),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No categories added yet.',
-                            style: TextStyle(fontSize: 16, color: Colors.grey),
-                          ),
-                          const SizedBox(height: 12),
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal),
-                            onPressed: () =>
-                                _showCategoryDialog(context, ref, userId),
-                            icon: const Icon(Icons.add, color: Colors.white),
-                            label: const Text('Add Category',
-                                style: TextStyle(color: Colors.white)),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
-                    padding: const EdgeInsets.all(16),
-                    itemCount: categories.length,
-                    itemBuilder: (context, index) {
-                      final category = categories[index];
-                      final catColor = category.getDisplayColor();
-
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 8),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(color: Colors.grey.shade200),
-                        ),
-                        child: ListTile(
-                          leading: CircleAvatar(
-                            backgroundColor: catColor.withOpacity(0.15),
-                            child: Icon(Icons.category, color: catColor),
-                          ),
-                          title: Text(
-                            category.name,
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                          subtitle: category.description != null
-                              ? Text(category.description!)
-                              : null,
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, color: Colors.blue),
-                                onPressed: () => _showCategoryDialog(
-                                  context,
-                                  ref,
-                                  userId,
-                                  categoryToEdit: category,
-                                ),
+      child: Scaffold(
+        backgroundColor: isDark ? oxfordBlue : lavender.withValues(alpha: 0.3),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            LanguageController.isUrdu ? 'انوینٹری کے زمرے' : 'Inventory Categories',
+            textDirection: LanguageController.contentTextDirection,
+            style: TextStyle(
+              color: isDark ? Colors.white : oxfordBlue,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh, color: isDark ? jordyBlue : spaceCadet),
+              onPressed: () => _refresh(ref, userId),
+            ),
+          ],
+        ),
+        body: userId.isEmpty
+            ? Center(
+                child: Text(
+                  l10n.error,
+                  textDirection: LanguageController.contentTextDirection,
+                ),
+              )
+            : ref.watch(categoriesProvider(userId)).when(
+                  data: (categories) {
+                    if (categories.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          textDirection: LanguageController.contentTextDirection,
+                          children: [
+                            Icon(Icons.category_outlined,
+                                size: 64, color: isDark ? jordyBlue : spaceCadet),
+                            const SizedBox(height: 16),
+                            Text(
+                              LanguageController.isUrdu ? 'ابھی تک کوئی زمرہ شامل نہیں کیا گیا۔' : 'No categories added yet.',
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: isDark ? lavender : spaceCadet,
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.red),
-                                onPressed: () async {
-                                  final repo = ref.read(inventoryRepoProvider);
-                                  await repo.deleteCategory(category.id);
-                                  _refresh(ref, userId);
-                                },
+                            ),
+                            const SizedBox(height: 12),
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: yinMnBlue,
                               ),
-                            ],
-                          ),
+                              onPressed: () =>
+                                  _showCategoryDialog(context, ref, userId),
+                              icon: const Icon(Icons.add, color: Colors.white),
+                              label: Text(
+                                LanguageController.isUrdu ? 'زمرہ شامل کریں' : 'Add Category',
+                                textDirection: LanguageController.contentTextDirection,
+                                style: const TextStyle(color: Colors.white),
+                              ),
+                            ),
+                          ],
                         ),
                       );
-                    },
-                  );
-                },
-                loading: () =>
-                    const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('${l10n.error}: $e')),
-              ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.teal,
-        onPressed: () => _showCategoryDialog(context, ref, userId),
-        child: const Icon(Icons.add, color: Colors.white),
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: categories.length,
+                      itemBuilder: (context, index) {
+                        final category = categories[index];
+                        final catColor = category.getDisplayColor();
+
+                        return Card(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          elevation: 0,
+                          color: isDark ? spaceCadet.withValues(alpha: 0.6) : Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            side: BorderSide(
+                              color: isDark ? jordyBlue.withValues(alpha: 0.2) : lavender,
+                            ),
+                          ),
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            leading: CircleAvatar(
+                              backgroundColor: catColor.withValues(alpha: 0.15),
+                              child: Icon(Icons.category, color: catColor),
+                            ),
+                            title: Text(
+                              category.name,
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : oxfordBlue,
+                              ),
+                            ),
+                            subtitle: category.description != null
+                                ? Text(
+                                    category.description!,
+                                    textDirection: LanguageController.contentTextDirection,
+                                    style: TextStyle(
+                                      color: isDark ? lavender.withValues(alpha: 0.7) : spaceCadet.withValues(alpha: 0.6),
+                                    ),
+                                  )
+                                : null,
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              textDirection: LanguageController.contentTextDirection,
+                              children: [
+                                IconButton(
+                                  icon: Icon(Icons.edit, color: isDark ? jordyBlue : yinMnBlue),
+                                  onPressed: () => _showCategoryDialog(
+                                    context,
+                                    ref,
+                                    userId,
+                                    categoryToEdit: category,
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.redAccent),
+                                  onPressed: () async {
+                                    final repo = ref.read(inventoryRepoProvider);
+                                    await repo.deleteCategory(category.id);
+                                    _refresh(ref, userId);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                  loading: () =>
+                      const Center(child: CircularProgressIndicator(color: yinMnBlue)),
+                  error: (e, _) => Center(
+                    child: Text(
+                      '${l10n.error}: $e',
+                      textDirection: LanguageController.contentTextDirection,
+                    ),
+                  ),
+                ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: yinMnBlue,
+          onPressed: () => _showCategoryDialog(context, ref, userId),
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
       ),
     );
   }

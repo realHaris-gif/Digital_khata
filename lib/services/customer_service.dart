@@ -61,7 +61,7 @@ class CustomerService {
       findCustomerByUniqueId(id);
 
   /// Add Customer with instant return and error handling (Static)
-  static Future<Map<String, dynamic>> addCustomer({
+static Future<Map<String, dynamic>> addCustomer({
     required String name,
     required String phone,
     double openingBalance = 0.0,
@@ -81,6 +81,7 @@ class CustomerService {
             'phone': phone,
             'unique_id': uniqueId,
             'created_by': _userId!,
+            'user_id': _userId!, 
             'opening_balance': openingBalance,
             'address': address,
             'notes': notes,
@@ -95,7 +96,6 @@ class CustomerService {
       rethrow;
     }
   }
-
   /// Update Customer Details (Static)
   static Future<void> updateCustomer({
     required String customerId,
@@ -138,21 +138,46 @@ class CustomerService {
   }
 
   /// Get Customer Totals (Static)
+  ///
+  /// Outstanding balance formula:
+  ///   totalDue = sum(GIVEN) - sum(RECEIVED)
+  /// (Opening balance is fetched for reference but excluded from totalDue to avoid double-counting with invoices)
   static Future<Map<String, double>> getCustomerTotals(String customerId) async {
     try {
-      final transactionsFuture = _client
-          .from('transactions')
-          .select('type, amount')
-          .eq('customer_id', customerId);
+      double openingBalance = 0.0;
+      try {
+        final customerRes = await _client
+            .from('customers')
+            .select('opening_balance')
+            .eq('id', customerId)
+            .maybeSingle();
+        openingBalance =
+            (customerRes?['opening_balance'] as num?)?.toDouble() ?? 0.0;
+      } catch (e) {
+        print('Warning: could not load opening_balance for $customerId: $e');
+      }
 
-      final expensesFuture = _client
-          .from('expenses')
-          .select('amount')
-          .eq('customer_id', customerId);
+      List<dynamic> transactions = const [];
+      try {
+        final txRes = await _client
+            .from('transactions')
+            .select('type, amount')
+            .eq('customer_id', customerId);
+        transactions = txRes as List<dynamic>;
+      } catch (e) {
+        print('Warning: could not load transactions for $customerId: $e');
+      }
 
-      final results = await Future.wait([transactionsFuture, expensesFuture]);
-      final transactions = results[0] as List<dynamic>;
-      final expenses = results[1] as List<dynamic>;
+      List<dynamic> expenses = const [];
+      try {
+        final expRes = await _client
+            .from('expenses')
+            .select('amount')
+            .eq('customer_id', customerId);
+        expenses = expRes as List<dynamic>;
+      } catch (e) {
+        print('Warning: could not load expenses for $customerId: $e');
+      }
 
       double totalGiven = 0.0;
       double totalReceived = 0.0;
@@ -173,6 +198,7 @@ class CustomerService {
         totalExpenses += (exp['amount'] as num?)?.toDouble() ?? 0.0;
       }
 
+      // Exclude opening_balance from totalDue calculation to prevent duplicate amounts
       final double totalDue = totalGiven - totalReceived;
       final double netBalance = totalDue + totalExpenses;
 
@@ -181,6 +207,7 @@ class CustomerService {
         'totalReceived': totalReceived,
         'totalPaid': totalReceived,
         'totalExpenses': totalExpenses,
+        'openingBalance': openingBalance,
         'totalDue': totalDue,
         'netDue': totalDue,
         'netBalance': netBalance,
@@ -192,6 +219,7 @@ class CustomerService {
         'totalReceived': 0.0,
         'totalPaid': 0.0,
         'totalExpenses': 0.0,
+        'openingBalance': 0.0,
         'totalDue': 0.0,
         'netDue': 0.0,
         'netBalance': 0.0,

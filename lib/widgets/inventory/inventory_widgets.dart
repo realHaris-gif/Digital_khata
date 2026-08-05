@@ -2,7 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:digital_khata/models/category_model.dart';
 import 'package:digital_khata/models/product_model.dart';
 import 'package:digital_khata/models/stock_movement_model.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
 import 'package:intl/intl.dart';
+
+// Blue Palette Constants
+const Color oxfordBlue = Color(0xFF192338);
+const Color spaceCadet = Color(0xFF1E2E4F);
+const Color yinMnBlue  = Color(0xFF31487A);
+const Color jordyBlue  = Color(0xFF8FB3E2);
+const Color lavender   = Color(0xFFD9E1F2);
 
 // =========================================================
 // STOCK BADGE WIDGET
@@ -14,17 +22,18 @@ class StockBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
     Color color;
     String text;
 
     if (product.isOutOfStock) {
-      color = Colors.red;
+      color = Colors.red.shade400;
       text = 'Out of Stock';
     } else if (product.isLowStock) {
-      color = Colors.orange;
+      color = Colors.orange.shade400;
       text = 'Low Stock';
     } else {
-      color = Colors.green;
+      color = Colors.green.shade400;
       text = 'In Stock';
     }
 
@@ -32,7 +41,7 @@ class StockBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.12),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: color.withOpacity(0.3), width: 1),
       ),
       child: Text(
@@ -62,23 +71,31 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+    final isDark = ThemeController.isDarkMode;
+    final fallbackColor = isDark ? jordyBlue : yinMnBlue;
+    final catColor = product.category?.getDisplayColor() ?? fallbackColor;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: isDark ? spaceCadet.withOpacity(0.6) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? jordyBlue.withOpacity(0.15) : lavender,
+        ),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         onTap: onTap,
-        leading: CircleAvatar(
-          radius: 22,
-          backgroundColor: product.category?.getDisplayColor().withOpacity(0.15) ??
-              Colors.teal.withOpacity(0.15),
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: catColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Icon(
             Icons.inventory_2_outlined,
-            color: product.category?.getDisplayColor() ?? Colors.teal,
+            color: catColor,
           ),
         ),
         title: Row(
@@ -86,9 +103,10 @@ class ProductCard extends StatelessWidget {
             Expanded(
               child: Text(
                 product.name,
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.bold,
                   fontSize: 15,
+                  color: isDark ? Colors.white : oxfordBlue,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -105,14 +123,17 @@ class ProductCard extends StatelessWidget {
             children: [
               Text(
                 'SKU: ${product.sku ?? "N/A"} • ${product.category?.name ?? "General"}',
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600,
+                ),
               ),
               Text(
                 '${product.currentStock.toStringAsFixed(0)} ${product.unit}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
-                  color: Colors.black87,
+                  color: isDark ? Colors.white : oxfordBlue,
                 ),
               ),
             ],
@@ -124,10 +145,10 @@ class ProductCard extends StatelessWidget {
           children: [
             Text(
               'Rs. ${product.sellingPrice.toStringAsFixed(2)}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
-                color: Colors.teal,
+                color: isDark ? jordyBlue : yinMnBlue,
               ),
             ),
           ],
@@ -158,40 +179,48 @@ class InventorySummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: Colors.grey.shade200),
+    final isDark = ThemeController.isDarkMode;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? spaceCadet.withOpacity(0.6) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? jordyBlue.withOpacity(0.15) : lavender,
+        ),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                radius: 16,
-                backgroundColor: color.withOpacity(0.12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
                 child: Icon(icon, color: color, size: 18),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(height: 2),
+              const SizedBox(height: 4),
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 15,
+                style: TextStyle(
+                  fontSize: 16,
                   fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : oxfordBlue,
                 ),
               ),
             ],
@@ -219,6 +248,7 @@ class CategoryChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
     final catColor = category.getDisplayColor();
 
     return Padding(
@@ -226,15 +256,27 @@ class CategoryChip extends StatelessWidget {
       child: FilterChip(
         selected: isSelected,
         label: Text(category.name),
+        labelStyle: TextStyle(
+          color: isSelected
+              ? (isDark ? oxfordBlue : Colors.white)
+              : (isDark ? Colors.white : oxfordBlue),
+          fontWeight: FontWeight.w600,
+        ),
         avatar: CircleAvatar(
           backgroundColor: catColor,
           radius: 6,
         ),
-        selectedColor: catColor.withOpacity(0.2),
-        checkmarkColor: catColor,
+        backgroundColor: isDark ? spaceCadet.withOpacity(0.6) : Colors.white,
+        selectedColor: isDark ? jordyBlue : yinMnBlue,
+        checkmarkColor: isDark ? oxfordBlue : Colors.white,
         onSelected: (_) => onTap(),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: isSelected
+                ? Colors.transparent
+                : (isDark ? jordyBlue.withOpacity(0.2) : lavender),
+          ),
         ),
       ),
     );
@@ -256,48 +298,70 @@ class MovementTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
     IconData icon;
     Color color;
 
     switch (movement.type) {
       case StockMovementType.inStock:
-        icon = Icons.arrow_downward;
-        color = Colors.green;
+        icon = Icons.arrow_downward_rounded;
+        color = Colors.green.shade400;
         break;
       case StockMovementType.outStock:
-        icon = Icons.arrow_upward;
-        color = Colors.red;
+        icon = Icons.arrow_upward_rounded;
+        color = Colors.red.shade400;
         break;
       case StockMovementType.adjustment:
-        icon = Icons.tune;
-        color = Colors.orange;
+        icon = Icons.tune_rounded;
+        color = Colors.orange.shade400;
         break;
       case StockMovementType.returnStock:
-        icon = Icons.replay;
-        color = Colors.blue;
+        icon = Icons.replay_rounded;
+        color = isDark ? jordyBlue : yinMnBlue;
         break;
     }
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      leading: CircleAvatar(
-        backgroundColor: color.withOpacity(0.12),
-        child: Icon(icon, color: color, size: 20),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isDark ? spaceCadet.withOpacity(0.6) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? jordyBlue.withOpacity(0.15) : lavender,
+        ),
       ),
-      title: Text(
-        productName ?? movement.type.displayName,
-        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-      ),
-      subtitle: Text(
-        '${DateFormat('MMM dd, yyyy • hh:mm a').format(movement.createdAt)}${movement.notes != null ? " • ${movement.notes}" : ""}',
-        style: const TextStyle(fontSize: 12, color: Colors.grey),
-      ),
-      trailing: Text(
-        '${movement.type == StockMovementType.outStock ? "-" : "+"}${movement.quantity.toStringAsFixed(0)}',
-        style: TextStyle(
-          fontWeight: FontWeight.bold,
-          fontSize: 15,
-          color: color,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
+        title: Text(
+          productName ?? movement.type.displayName,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 14,
+            color: isDark ? Colors.white : oxfordBlue,
+          ),
+        ),
+        subtitle: Text(
+          '${DateFormat('MMM dd, yyyy • hh:mm a').format(movement.createdAt)}${movement.notes != null ? " • ${movement.notes}" : ""}',
+          style: TextStyle(
+            fontSize: 12,
+            color: isDark ? lavender.withOpacity(0.6) : Colors.grey.shade600,
+          ),
+        ),
+        trailing: Text(
+          '${movement.type == StockMovementType.outStock ? "-" : "+"}${movement.quantity.toStringAsFixed(0)}',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+            color: color,
+          ),
         ),
       ),
     );

@@ -10,9 +10,12 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 import 'package:digital_khata/l10n/app_localizations.dart';
 import 'package:digital_khata/models/invoice_model.dart';
 import 'package:digital_khata/services/invoice_service.dart';
+import 'package:digital_khata/theme/app_theme.dart';
 import 'package:digital_khata/widgets/bill_book/create_invoice_fab.dart';
 import 'package:digital_khata/widgets/bill_book/invoice_ticket_card.dart';
 import 'package:digital_khata/widgets/bill_book/invoice_widgets.dart';
@@ -30,8 +33,7 @@ final singleInvoiceProvider =
 class InvoiceDetailScreen extends ConsumerStatefulWidget {
   final String invoiceId;
 
-  const InvoiceDetailScreen({Key? key, required this.invoiceId})
-      : super(key: key);
+  const InvoiceDetailScreen({super.key, required this.invoiceId});
 
   @override
   ConsumerState<InvoiceDetailScreen> createState() =>
@@ -62,12 +64,17 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        text: 'Here is your receipt for transaction #${widget.invoiceId}.',
+        text: LanguageController.isUrdu ? 'یہاں آپ کے لین دین کی رسید ہے #${widget.invoiceId}۔' : 'Here is your receipt for transaction #${widget.invoiceId}.',
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to share receipt image: $e')),
+          SnackBar(
+            content: Text(
+              LanguageController.isUrdu ? 'رسید کی تصویر شیئر کرنے میں ناکام: $e' : 'Failed to share receipt image: $e',
+              textDirection: LanguageController.contentTextDirection,
+            ),
+          ),
         );
       }
     }
@@ -88,15 +95,15 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                 key: _ticketKey,
                 child: InvoiceTicketCard(invoice: invoice),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSpacing.xl),
               SizedBox(
                 width: 220,
                 height: 48,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.black,
+                    backgroundColor: AppColors.yinMnBlue,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(AppRadius.pill),
                     ),
                   ),
                   onPressed: () {
@@ -105,9 +112,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                   },
                   icon: const Icon(Icons.share_rounded,
                       color: Colors.white, size: 18),
-                  label: const Text(
-                    'Share Receipt Image',
-                    style: TextStyle(
+                  label: Text(
+                    LanguageController.isUrdu ? 'رسید کی تصویر شیئر کریں' : 'Share Receipt Image',
+                    textDirection: LanguageController.contentTextDirection,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
@@ -123,15 +131,17 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
 
   void _showActionBottomSheet(
       BuildContext context, WidgetRef ref, Invoice invoice) {
+    final isDark = ThemeController.isDarkMode;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
-          padding: const EdgeInsets.all(20),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkSurface : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -139,24 +149,26 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
               Container(
                 width: 36,
                 height: 4,
-                margin: const EdgeInsets.only(bottom: 20),
+                margin: const EdgeInsets.only(bottom: AppSpacing.xl),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: isDark ? AppColors.jordyBlue.withValues(alpha: 0.3) : AppColors.lavender,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               _buildModalButton(
                 icon: Icons.confirmation_number_outlined,
-                label: 'Share Receipt Card',
+                label: LanguageController.isUrdu ? 'رسید کارڈ شیئر کریں' : 'Share Receipt Card',
+                isDark: isDark,
                 onTap: () {
                   Navigator.pop(context);
                   _showShareTicketDialog(context, invoice);
                 },
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               _buildModalButton(
                 icon: Icons.copy_outlined,
-                label: 'Duplicate invoice',
+                label: LanguageController.isUrdu ? 'انوائس کی نقل بنائیں' : 'Duplicate invoice',
+                isDark: isDark,
                 onTap: () async {
                   Navigator.pop(context);
                   final userId =
@@ -165,26 +177,33 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                   await repo.duplicateInvoice(widget.invoiceId, userId);
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Invoice duplicated!')),
+                      SnackBar(
+                        content: Text(
+                          LanguageController.isUrdu ? 'انوائس ڈپلیکیٹ ہو گئی!' : 'Invoice duplicated!',
+                          textDirection: LanguageController.contentTextDirection,
+                        ),
+                      ),
                     );
                     context.pop(true);
                   }
                 },
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               _buildModalButton(
                 icon: Icons.add_card_rounded,
-                label: 'Record payment',
+                label: LanguageController.isUrdu ? 'ادائیگی درج کریں' : 'Record payment',
+                isDark: isDark,
                 onTap: () {
                   Navigator.pop(context);
                   _showPaymentModal(context, ref, invoice);
                 },
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.sm),
               _buildModalButton(
                 icon: Icons.delete_outline_rounded,
-                label: 'Delete invoice',
+                label: LanguageController.isUrdu ? 'انوائس حذف کریں' : 'Delete invoice',
                 isDanger: true,
+                isDark: isDark,
                 onTap: () async {
                   Navigator.pop(context);
                   final repo = ref.read(invoiceRepoProvider);
@@ -192,7 +211,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                   if (context.mounted) context.pop(true);
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.lg),
             ],
           ),
         );
@@ -204,34 +223,38 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
     required IconData icon,
     required String label,
     required VoidCallback onTap,
+    required bool isDark,
     bool isDanger = false,
   }) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.xl),
         child: Container(
           height: 52,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
           decoration: BoxDecoration(
-            color:
-                isDanger ? const Color(0xFFFDF2F2) : const Color(0xFFF4F5F7),
-            borderRadius: BorderRadius.circular(16),
+            color: isDanger
+                ? Colors.red.withValues(alpha: 0.1)
+                : (isDark ? AppColors.darkBackground : AppColors.lavender.withValues(alpha: 0.4)),
+            borderRadius: BorderRadius.circular(AppRadius.xl),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            textDirection: LanguageController.contentTextDirection,
             children: [
               Icon(
                 icon,
-                color: isDanger ? Colors.redAccent : Colors.black87,
+                color: isDanger ? Colors.redAccent : (isDark ? AppColors.jordyBlue : AppColors.yinMnBlue),
                 size: 20,
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 label,
+                textDirection: LanguageController.contentTextDirection,
                 style: TextStyle(
-                  color: isDanger ? Colors.redAccent : Colors.black87,
+                  color: isDanger ? Colors.redAccent : (isDark ? Colors.white : AppColors.oxfordBlue),
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),
@@ -270,7 +293,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
         context: context,
         isScrollControlled: true,
         shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xxl)),
         ),
         builder: (ctx) {
           return StatefulBuilder(
@@ -288,58 +311,59 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Record Payment',
-                        style: TextStyle(
+                      Text(
+                        LanguageController.isUrdu ? 'ادائیگی درج کریں' : 'Record Payment',
+                        textDirection: LanguageController.contentTextDirection,
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSpacing.lg),
                       TextFormField(
                         controller: amountController,
                         keyboardType: const TextInputType.numberWithOptions(
                             decimal: true),
                         decoration: InputDecoration(
-                          labelText: 'Payment Amount (Rs.) *',
+                          labelText: LanguageController.isUrdu ? 'ادائیگی کی رقم (روپے) *' : 'Payment Amount (Rs.) *',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
                           ),
                         ),
                         validator: (val) {
                           if (val == null || val.trim().isEmpty) {
-                            return 'Enter payment amount';
+                            return LanguageController.isUrdu ? 'ادائیگی کی رقم درج کریں' : 'Enter payment amount';
                           }
                           final parsed = double.tryParse(val);
                           if (parsed == null || parsed <= 0) {
-                            return 'Enter valid amount';
+                            return LanguageController.isUrdu ? 'درست رقم درج کریں' : 'Enter valid amount';
                           }
                           if (parsed > invoice.remainingBalance + 0.01) {
-                            return 'Amount cannot exceed remaining balance (Rs. ${invoice.remainingBalance.toStringAsFixed(2)})';
+                            return LanguageController.isUrdu ? 'رقم باقی بیلنس سے زیادہ نہیں ہو سکتی (Rs. ${invoice.remainingBalance.toStringAsFixed(2)})' : 'Amount cannot exceed remaining balance (Rs. ${invoice.remainingBalance.toStringAsFixed(2)})';
                           }
                           return null;
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       DropdownButtonFormField<String>(
                         value: selectedMethod,
                         decoration: InputDecoration(
-                          labelText: 'Payment Method',
+                          labelText: LanguageController.isUrdu ? 'ادائیگی کا طریقہ' : 'Payment Method',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
                           ),
                         ),
-                        items: const [
-                          DropdownMenuItem(value: 'Cash', child: Text('Cash')),
-                          DropdownMenuItem(value: 'Bank', child: Text('Bank')),
+                        items: [
+                          DropdownMenuItem(value: 'Cash', child: Text(LanguageController.isUrdu ? 'نقد' : 'Cash', textDirection: LanguageController.contentTextDirection)),
+                          DropdownMenuItem(value: 'Bank', child: Text(LanguageController.isUrdu ? 'بینک' : 'Bank', textDirection: LanguageController.contentTextDirection)),
                           DropdownMenuItem(
-                              value: 'JazzCash', child: Text('JazzCash')),
+                              value: 'JazzCash', child: Text('JazzCash', textDirection: LanguageController.contentTextDirection)),
                           DropdownMenuItem(
-                              value: 'EasyPaisa', child: Text('EasyPaisa')),
+                              value: 'EasyPaisa', child: Text('EasyPaisa', textDirection: LanguageController.contentTextDirection)),
                           DropdownMenuItem(
-                              value: 'Credit Card', child: Text('Credit Card')),
+                              value: 'Credit Card', child: Text(LanguageController.isUrdu ? 'کریڈٹ کارڈ' : 'Credit Card', textDirection: LanguageController.contentTextDirection)),
                           DropdownMenuItem(
-                              value: 'Custom', child: Text('Custom')),
+                              value: 'Custom', child: Text(LanguageController.isUrdu ? 'اپنی مرضی کے مطابق' : 'Custom', textDirection: LanguageController.contentTextDirection)),
                         ],
                         onChanged: (val) {
                           if (val != null) {
@@ -347,43 +371,44 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                           }
                         },
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       if (accounts.isNotEmpty)
                         DropdownButtonFormField<String>(
                           value: selectedAccountId,
                           decoration: InputDecoration(
-                            labelText: 'Account (Optional)',
+                            labelText: LanguageController.isUrdu ? 'اکاؤنٹ (اختیاری)' : 'Account (Optional)',
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(AppRadius.lg),
                             ),
                           ),
                           items: accounts.map((acc) {
                             return DropdownMenuItem<String>(
                               value: acc['id'] as String,
-                              child: Text(acc['name'] as String),
+                              child: Text(acc['name'] as String, textDirection: LanguageController.contentTextDirection),
                             );
                           }).toList(),
                           onChanged: (val) {
                             setModalState(() => selectedAccountId = val);
                           },
                         ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSpacing.md),
                       TextFormField(
                         controller: notesController,
+                        textDirection: LanguageController.contentTextDirection,
                         decoration: InputDecoration(
-                          labelText: 'Payment Notes (Optional)',
+                          labelText: LanguageController.isUrdu ? 'ادائیگی کے نوٹس (اختیاری)' : 'Payment Notes (Optional)',
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadius.lg),
                           ),
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: AppSpacing.xl),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          backgroundColor: Colors.black,
+                          backgroundColor: AppColors.yinMnBlue,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(AppRadius.xl),
                           ),
                         ),
                         onPressed: isSubmitting
@@ -417,7 +442,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                   if (ctx.mounted) {
                                     ScaffoldMessenger.of(ctx).showSnackBar(
                                       SnackBar(
-                                        content: Text('Payment failed: $e'),
+                                        content: Text(
+                                          LanguageController.isUrdu ? 'ادائیگی ناکام ہو گئی: $e' : 'Payment failed: $e',
+                                          textDirection: LanguageController.contentTextDirection,
+                                        ),
                                       ),
                                     );
                                   }
@@ -435,9 +463,10 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
                                   color: Colors.white,
                                 ),
                               )
-                            : const Text(
-                                'Submit Payment',
-                                style: TextStyle(
+                            : Text(
+                                LanguageController.isUrdu ? 'ادائیگی جمع کروائیں' : 'Submit Payment',
+                                textDirection: LanguageController.contentTextDirection,
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -458,425 +487,489 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final invoiceAsync = ref.watch(singleInvoiceProvider(widget.invoiceId));
+    final isDark = ThemeController.isDarkMode;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new,
-              color: Colors.black, size: 18),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Invoice detail',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
+    return RepaintBoundary(
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.darkBackground : AppColors.surface1,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.arrow_back_ios_new,
+                color: isDark ? AppColors.jordyBlue : AppColors.oxfordBlue, size: 18),
+            onPressed: () => context.pop(),
           ),
-        ),
-        centerTitle: true,
-        actions: [
-          invoiceAsync.when(
-            data: (invoice) => invoice == null
-                ? const SizedBox()
-                : Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.share_outlined,
-                            color: Colors.black),
-                        onPressed: () =>
-                            _showShareTicketDialog(context, invoice),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.more_vert_rounded,
-                            color: Colors.black),
-                        onPressed: () =>
-                            _showActionBottomSheet(context, ref, invoice),
-                      ),
-                    ],
-                  ),
-            loading: () => const SizedBox(),
-            error: (_, __) => const SizedBox(),
+          title: Text(
+            LanguageController.isUrdu ? 'انوائس کی تفصیل' : 'Invoice detail',
+            textDirection: LanguageController.contentTextDirection,
+            style: TextStyle(
+              color: isDark ? Colors.white : AppColors.oxfordBlue,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          invoiceAsync.when(
-            data: (invoice) {
-              if (invoice == null) {
-                return const Center(child: Text('Invoice not found.'));
-              }
-
-              final formattedIssueDate =
-                  DateFormat('MMM dd, yyyy').format(invoice.createdAt);
-              final formattedDueDate = DateFormat('MMM dd, yyyy').format(
-                invoice.createdAt.add(const Duration(days: 14)),
-              );
-
-              return RefreshIndicator(
-                onRefresh: () async => _refresh(),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    top: 8,
-                    bottom: 120,
-                  ),
-                  child: Column(
-                    children: [
-                      // Top ID and Status Card
-                      Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.grey.shade200),
+          centerTitle: true,
+          actions: [
+            invoiceAsync.when(
+              data: (invoice) => invoice == null
+                  ? const SizedBox()
+                  : Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.share_outlined,
+                              color: isDark ? AppColors.jordyBlue : AppColors.oxfordBlue),
+                          onPressed: () =>
+                              _showShareTicketDialog(context, invoice),
                         ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade100,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(Icons.description_outlined,
-                                  size: 20, color: Colors.black54),
+                        IconButton(
+                          icon: Icon(Icons.more_vert_rounded,
+                              color: isDark ? AppColors.jordyBlue : AppColors.oxfordBlue),
+                          onPressed: () =>
+                              _showActionBottomSheet(context, ref, invoice),
+                        ),
+                      ],
+                    ),
+              loading: () => const SizedBox(),
+              error: (_, __) => const SizedBox(),
+            ),
+          ],
+        ),
+        body: Stack(
+          children: [
+            invoiceAsync.when(
+              data: (invoice) {
+                if (invoice == null) {
+                  return Center(
+                    child: Text(
+                      LanguageController.isUrdu ? 'انوائس نہیں ملی۔' : 'Invoice not found.',
+                      textDirection: LanguageController.contentTextDirection,
+                    ),
+                  );
+                }
+
+                final formattedIssueDate =
+                    DateFormat('MMM dd, yyyy').format(invoice.createdAt);
+                final formattedDueDate = DateFormat('MMM dd, yyyy').format(
+                  invoice.createdAt.add(const Duration(days: 14)),
+                );
+
+                return RefreshIndicator(
+                  color: AppColors.yinMnBlue,
+                  onRefresh: () async => _refresh(),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(
+                      left: AppSpacing.lg,
+                      right: AppSpacing.lg,
+                      top: AppSpacing.sm,
+                      bottom: 120,
+                    ),
+                    child: Column(
+                      children: [
+                        // Top ID and Status Card
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurface : Colors.white,
+                            borderRadius: BorderRadius.circular(AppRadius.xxl),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBorder.withValues(alpha: 0.2) : AppColors.borderLight,
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: isDark ? AppColors.darkBackground : AppColors.lavender.withValues(alpha: 0.4),
+                                  borderRadius: BorderRadius.circular(AppRadius.md),
+                                ),
+                                child: Icon(Icons.description_outlined,
+                                    size: 20, color: isDark ? AppColors.jordyBlue : AppColors.yinMnBlue),
+                              ),
+                              const SizedBox(width: AppSpacing.md),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      invoice.invoiceNumber,
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                        color: isDark ? Colors.white : AppColors.oxfordBlue,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    InvoiceStatusBadge(status: invoice.status),
+                                  ],
+                                ),
+                              ),
+                              OutlinedButton.icon(
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(
+                                    color: isDark ? AppColors.darkBorder.withValues(alpha: 0.4) : AppColors.borderLight,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadius.lg),
+                                  ),
+                                ),
+                                onPressed: () => context.push(
+                                    '/bill-book/create',
+                                    extra: invoice),
+                                icon: Icon(Icons.edit_outlined,
+                                    size: 16, color: isDark ? AppColors.jordyBlue : AppColors.yinMnBlue),
+                                label: Text(
+                                  LanguageController.isUrdu ? 'ترمیم' : 'Edit',
+                                  textDirection: LanguageController.contentTextDirection,
+                                  style: TextStyle(
+                                    color: isDark ? AppColors.jordyBlue : AppColors.yinMnBlue,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.lg),
+
+                        // Main Receipt Document Layout
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.xl),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurface : Colors.white,
+                            borderRadius: BorderRadius.circular(AppRadius.xxl),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBorder.withValues(alpha: 0.2) : AppColors.borderLight,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                textDirection: LanguageController.contentTextDirection,
                                 children: [
                                   Text(
-                                    invoice.invoiceNumber,
-                                    style: const TextStyle(
+                                    LanguageController.isUrdu ? 'انوائس' : 'INVOICE',
+                                    textDirection: LanguageController.contentTextDirection,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 1.2,
+                                      fontSize: 16,
+                                      color: isDark ? Colors.white : AppColors.oxfordBlue,
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.yinMnBlue,
+                                      borderRadius: BorderRadius.circular(AppRadius.md),
+                                    ),
+                                    child: const Icon(Icons.stop,
+                                        color: Colors.white, size: 16),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.xl),
+
+                              _buildMetaRow(
+                                  LanguageController.isUrdu ? 'انوائس نمبر' : 'Invoice number', invoice.invoiceNumber, isDark),
+                              _buildMetaRow(LanguageController.isUrdu ? 'اجراء کی تاریخ' : 'Issue date', formattedIssueDate, isDark),
+                              _buildMetaRow(LanguageController.isUrdu ? 'آخری تاریخ' : 'Due date', formattedDueDate, isDark),
+                              const SizedBox(height: AppSpacing.xl),
+
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                textDirection: LanguageController.contentTextDirection,
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          LanguageController.isUrdu ? 'بل بھیجا گیا' : 'Billed to',
+                                          textDirection: LanguageController.contentTextDirection,
+                                          style: TextStyle(
+                                              color: isDark ? AppColors.lavender.withValues(alpha: 0.7) : AppColors.spaceCadet.withValues(alpha: 0.6),
+                                              fontSize: 12),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          invoice.customerName ??
+                                              (LanguageController.isUrdu ? 'واک ان کسٹمر' : 'Walk-in Customer'),
+                                          textDirection: LanguageController.contentTextDirection,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                              color: isDark ? Colors.white : AppColors.oxfordBlue),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          LanguageController.isUrdu ? 'جانب سے' : 'From',
+                                          textDirection: LanguageController.contentTextDirection,
+                                          style: TextStyle(
+                                              color: isDark ? AppColors.lavender.withValues(alpha: 0.7) : AppColors.spaceCadet.withValues(alpha: 0.6),
+                                              fontSize: 12),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          LanguageController.isUrdu ? 'ڈیجیٹل کھاتہ اسٹور' : 'Digital Khata Store',
+                                          textDirection: LanguageController.contentTextDirection,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                              color: isDark ? Colors.white : AppColors.oxfordBlue),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.xxl),
+
+                              // Line Items Table Header
+                              Row(
+                                textDirection: LanguageController.contentTextDirection,
+                                children: [
+                                  Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      LanguageController.isUrdu ? 'آئٹمز' : 'Items',
+                                      textDirection: LanguageController.contentTextDirection,
+                                      style: TextStyle(
+                                          color: isDark ? AppColors.lavender.withValues(alpha: 0.7) : AppColors.spaceCadet.withValues(alpha: 0.6),
+                                          fontSize: 12),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      LanguageController.isUrdu ? 'مقدار' : 'Qty',
+                                      textAlign: TextAlign.center,
+                                      textDirection: LanguageController.contentTextDirection,
+                                      style: TextStyle(
+                                          color: isDark ? AppColors.lavender.withValues(alpha: 0.7) : AppColors.spaceCadet.withValues(alpha: 0.6),
+                                          fontSize: 12),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      LanguageController.isUrdu ? 'رقم' : 'Amount',
+                                      textAlign: TextAlign.right,
+                                      textDirection: LanguageController.contentTextDirection,
+                                      style: TextStyle(
+                                          color: isDark ? AppColors.lavender.withValues(alpha: 0.7) : AppColors.spaceCadet.withValues(alpha: 0.6),
+                                          fontSize: 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.sm),
+                              Divider(height: 1, color: isDark ? AppColors.darkBorder.withValues(alpha: 0.2) : AppColors.borderLight),
+                              const SizedBox(height: AppSpacing.md),
+
+                              // Line Items Rows
+                              ...invoice.items.map(
+                                (item) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 8.0),
+                                  child: Row(
+                                    textDirection: LanguageController.contentTextDirection,
+                                    children: [
+                                      Expanded(
+                                        flex: 3,
+                                        child: Text(
+                                          item.productName,
+                                          textDirection: LanguageController.contentTextDirection,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              fontSize: 13,
+                                              color: isDark ? Colors.white : AppColors.oxfordBlue),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          '${item.quantity}',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(fontSize: 13, color: isDark ? AppColors.lavender : AppColors.oxfordBlue),
+                                        ),
+                                      ),
+                                      Expanded(
+                                        flex: 2,
+                                        child: Text(
+                                          'Rs. ${(item.unitPrice * item.quantity).toStringAsFixed(2)}',
+                                          textAlign: TextAlign.right,
+                                          style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 13,
+                                              color: isDark ? Colors.white : AppColors.oxfordBlue),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: AppSpacing.md),
+                              Divider(height: 1, color: isDark ? AppColors.darkBorder.withValues(alpha: 0.2) : AppColors.borderLight),
+                              const SizedBox(height: AppSpacing.md),
+
+                              // Financial Summary Breakup
+                              _buildSummaryRow(LanguageController.isUrdu ? 'ذیلی کل' : 'Subtotal',
+                                  'Rs. ${invoice.subtotal.toStringAsFixed(2)}', isDark),
+                              if (invoice.discount > 0)
+                                _buildSummaryRow(LanguageController.isUrdu ? 'ڈسکاؤنট' : 'Discount',
+                                    '- Rs. ${invoice.discount.toStringAsFixed(2)}', isDark,
+                                    textColor: Colors.redAccent),
+                              if (invoice.tax > 0)
+                                _buildSummaryRow(LanguageController.isUrdu ? 'ٹیکس' : 'Tax',
+                                    '+ Rs. ${invoice.tax.toStringAsFixed(2)}', isDark),
+                              if (invoice.shipping > 0)
+                                _buildSummaryRow(LanguageController.isUrdu ? 'شپنگ' : 'Shipping',
+                                    '+ Rs. ${invoice.shipping.toStringAsFixed(2)}', isDark),
+
+                              const SizedBox(height: AppSpacing.sm),
+                              Divider(height: 1, color: isDark ? AppColors.darkBorder.withValues(alpha: 0.2) : AppColors.borderLight),
+                              const SizedBox(height: AppSpacing.md),
+
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                textDirection: LanguageController.contentTextDirection,
+                                children: [
+                                  Text(
+                                    LanguageController.isUrdu ? 'کل' : 'Total',
+                                    textDirection: LanguageController.contentTextDirection,
+                                    style: TextStyle(
+                                      color: isDark ? AppColors.lavender : AppColors.spaceCadet,
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  InvoiceStatusBadge(status: invoice.status),
+                                  Text(
+                                    'Rs. ${invoice.total.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      color: isDark ? Colors.white : AppColors.oxfordBlue,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                    ),
+                                  ),
                                 ],
                               ),
-                            ),
-                            OutlinedButton.icon(
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(color: Colors.grey.shade300),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: () => context.push(
-                                  '/bill-book/create',
-                                  extra: invoice),
-                              icon: const Icon(Icons.edit_outlined,
-                                  size: 16, color: Colors.black),
-                              label: const Text(
-                                'Edit',
-                                style: TextStyle(
-                                    color: Colors.black, fontSize: 13),
-                              ),
-                            ),
-                          ],
+                              const SizedBox(height: 6),
+                              _buildSummaryRow(LanguageController.isUrdu ? 'کل ادا شدہ' : 'Total Paid',
+                                  'Rs. ${invoice.totalPaid.toStringAsFixed(2)}', isDark,
+                                  textColor: Colors.green.shade400, isBold: true),
+                              _buildSummaryRow(LanguageController.isUrdu ? 'بقایا' : 'Remaining',
+                                  'Rs. ${invoice.remainingBalance.toStringAsFixed(2)}', isDark,
+                                  textColor: Colors.redAccent, isBold: true),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 16),
 
-                      // Main Receipt Document Layout
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: Colors.grey.shade200),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(height: AppSpacing.xxl),
+
+                        // Payment Activity Section
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          textDirection: LanguageController.contentTextDirection,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text(
-                                  'INVOICE',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 1.2,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black,
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: const Icon(Icons.stop,
-                                      color: Colors.white, size: 16),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-
-                            _buildMetaRow(
-                                'Invoice number', invoice.invoiceNumber),
-                            _buildMetaRow('Issue date', formattedIssueDate),
-                            _buildMetaRow('Due date', formattedDueDate),
-                            const SizedBox(height: 20),
-
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Billed to',
-                                        style: TextStyle(
-                                            color: Colors.grey.shade500,
-                                            fontSize: 12),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        invoice.customerName ??
-                                            'Walk-in Customer',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'From',
-                                        style: TextStyle(
-                                            color: Colors.grey.shade500,
-                                            fontSize: 12),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Digital Khata Store',
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-
-                            // Line Items Table Header
-                            Row(
-                              children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: Text('Items',
-                                      style: TextStyle(
-                                          color: Colors.grey.shade500,
-                                          fontSize: 12)),
-                                ),
-                                Expanded(
-                                  child: Text('Qty',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                          color: Colors.grey.shade500,
-                                          fontSize: 12)),
-                                ),
-                                Expanded(
-                                  flex: 2,
-                                  child: Text('Amount',
-                                      textAlign: TextAlign.right,
-                                      style: TextStyle(
-                                          color: Colors.grey.shade500,
-                                          fontSize: 12)),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            const Divider(height: 1),
-                            const SizedBox(height: 12),
-
-                            // Line Items Rows
-                            ...invoice.items.map(
-                              (item) => Padding(
-                                padding: const EdgeInsets.only(bottom: 8.0),
-                                child: Row(
-                                  children: [
-                                    Expanded(
-                                      flex: 3,
-                                      child: Text(
-                                        item.productName,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 13),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Text(
-                                        '${item.quantity}',
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(fontSize: 13),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      flex: 2,
-                                      child: Text(
-                                        'Rs. ${(item.unitPrice * item.quantity).toStringAsFixed(2)}',
-                                        textAlign: TextAlign.right,
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 13),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                            Text(
+                              LanguageController.isUrdu ? 'ادائیگی کی سرگرمی' : 'Payment Activity',
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.jordyBlue : AppColors.oxfordBlue,
                               ),
                             ),
-
-                            const SizedBox(height: 12),
-                            const Divider(height: 1),
-                            const SizedBox(height: 12),
-
-                            // Financial Summary Breakup
-                            _buildSummaryRow('Subtotal',
-                                'Rs. ${invoice.subtotal.toStringAsFixed(2)}'),
-                            if (invoice.discount > 0)
-                              _buildSummaryRow('Discount',
-                                  '- Rs. ${invoice.discount.toStringAsFixed(2)}',
-                                  textColor: Colors.red),
-                            if (invoice.tax > 0)
-                              _buildSummaryRow('Tax',
-                                  '+ Rs. ${invoice.tax.toStringAsFixed(2)}'),
-                            if (invoice.shipping > 0)
-                              _buildSummaryRow('Shipping',
-                                  '+ Rs. ${invoice.shipping.toStringAsFixed(2)}'),
-
-                            const SizedBox(height: 8),
-                            const Divider(height: 1),
-                            const SizedBox(height: 12),
-
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Total',
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
+                            if (invoice.remainingBalance > 0 &&
+                                invoice.status != InvoiceStatus.cancelled)
+                              ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.yinMnBlue,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(AppRadius.lg),
                                   ),
                                 ),
-                                Text(
-                                  'Rs. ${invoice.total.toStringAsFixed(2)}',
-                                  style: const TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                  ),
+                                onPressed: () =>
+                                    _showPaymentModal(context, ref, invoice),
+                                icon: const Icon(Icons.add,
+                                    color: Colors.white, size: 18),
+                                label: Text(
+                                  LanguageController.isUrdu ? 'ادائیگی درج کریں' : 'Record Payment',
+                                  textDirection: LanguageController.contentTextDirection,
+                                  style: const TextStyle(color: Colors.white),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            _buildSummaryRow('Total Paid',
-                                'Rs. ${invoice.totalPaid.toStringAsFixed(2)}',
-                                textColor: Colors.green, isBold: true),
-                            _buildSummaryRow('Remaining',
-                                'Rs. ${invoice.remainingBalance.toStringAsFixed(2)}',
-                                textColor: Colors.redAccent, isBold: true),
+                              ),
                           ],
                         ),
-                      ),
+                        const SizedBox(height: AppSpacing.sm),
 
-                      const SizedBox(height: 24),
-
-                      // Payment Activity Section
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          const Text(
-                            'Payment Activity',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                        if (invoice.payments.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: Text(
+                              LanguageController.isUrdu ? 'ابھی تک کوئی ادائیگی درج نہیں کی گئی۔' : 'No payments recorded yet.',
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(
+                                  color: isDark ? AppColors.lavender.withValues(alpha: 0.6) : AppColors.spaceCadet.withValues(alpha: 0.6)),
                             ),
-                          ),
-                          if (invoice.remainingBalance > 0 &&
-                              invoice.status != InvoiceStatus.cancelled)
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.teal,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                              onPressed: () =>
-                                  _showPaymentModal(context, ref, invoice),
-                              icon: const Icon(Icons.add,
-                                  color: Colors.white, size: 18),
-                              label: const Text(
-                                'Record Payment',
-                                style: TextStyle(color: Colors.white),
-                              ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      if (invoice.payments.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(16.0),
-                          child: Text(
-                            'No payments recorded yet.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        )
-                      else
-                        ...invoice.payments.map((p) => PaymentTile(payment: p)),
-                    ],
+                          )
+                        else
+                          ...invoice.payments.map((p) => PaymentTile(payment: p)),
+                      ],
+                    ),
                   ),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.yinMnBlue)),
+              error: (e, _) => Center(
+                child: Text(
+                  '${l10n.error}: $e',
+                  textDirection: LanguageController.contentTextDirection,
                 ),
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (e, _) => Center(child: Text('${l10n.error}: $e')),
-          ),
+              ),
+            ),
 
-          // Reusable Persistent Create Invoice Floating Button
-          const CreateInvoiceFAB(),
-        ],
+            // Reusable Persistent Create Invoice Floating Button
+            const CreateInvoiceFAB(),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildMetaRow(String label, String value) {
+  Widget _buildMetaRow(String label, String value, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Row(
+        textDirection: LanguageController.contentTextDirection,
         children: [
           SizedBox(
             width: 110,
             child: Text(
               label,
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 13),
+              textDirection: LanguageController.contentTextDirection,
+              style: TextStyle(
+                  color: isDark ? AppColors.lavender.withValues(alpha: 0.7) : AppColors.spaceCadet.withValues(alpha: 0.6),
+                  fontSize: 13),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+                color: isDark ? Colors.white : AppColors.oxfordBlue),
           ),
         ],
       ),
@@ -885,20 +978,24 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
 
   Widget _buildSummaryRow(
     String label,
-    String value, {
+    String value,
+    bool isDark, {
     Color? textColor,
     bool isBold = false,
   }) {
+    print("Building summary row: $label");
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        textDirection: LanguageController.contentTextDirection,
         children: [
           Text(
             label,
+            textDirection: LanguageController.contentTextDirection,
             style: TextStyle(
               fontSize: 13,
-              color: Colors.grey.shade600,
+              color: isDark ? AppColors.lavender.withValues(alpha: 0.7) : AppColors.spaceCadet.withValues(alpha: 0.6),
               fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
             ),
           ),
@@ -906,7 +1003,7 @@ class _InvoiceDetailScreenState extends ConsumerState<InvoiceDetailScreen> {
             value,
             style: TextStyle(
               fontSize: 13,
-              color: textColor ?? Colors.black,
+              color: textColor ?? (isDark ? Colors.white : AppColors.oxfordBlue),
               fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
             ),
           ),

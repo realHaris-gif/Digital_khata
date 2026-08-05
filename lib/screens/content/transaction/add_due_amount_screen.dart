@@ -3,6 +3,8 @@ import 'package:digital_khata/services/customer_service.dart';
 import 'package:digital_khata/services/services.dart';
 import 'package:digital_khata/widgets/forms/form_widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 
 class AddDueAmountScreen extends StatefulWidget {
   final String personId;
@@ -30,6 +32,13 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
   double _totalPaid = 0.0;
   double _netDue = 0.0;
   bool _isLoading = true;
+
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
 
   @override
   void initState() {
@@ -72,7 +81,7 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
     if (item.isEmpty || price <= 0) {
       showFormSnackBar(
         context,
-        message: 'Please enter valid item name and price',
+        message: LanguageController.isUrdu ? 'براہ کرم درست آئٹم کا نام اور قیمت درج کریں' : 'Please enter valid item name and price',
         isError: true,
       );
       return;
@@ -88,7 +97,7 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
         Navigator.pop(context); // Close dialog
         showFormSnackBar(
           context,
-          message: 'Due item added successfully',
+          message: LanguageController.isUrdu ? 'بقیہ آئٹم کامیابی کے ساتھ شامل کر دی گئی' : 'Due item added successfully',
         );
       }
       await _loadTotals();
@@ -96,7 +105,7 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
       if (mounted) {
         showFormSnackBar(
           context,
-          message: 'Error adding due item: $e',
+          message: LanguageController.isUrdu ? 'بقیہ آئٹم شامل کرنے میں خرابی: $e' : 'Error adding due item: $e',
           isError: true,
         );
       }
@@ -111,8 +120,8 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
       showFormSnackBar(
         context,
         message: amount <= 0
-            ? 'Enter a valid amount'
-            : 'Payment cannot exceed net due amount (Rs. ${_netDue.toStringAsFixed(2)})',
+            ? (LanguageController.isUrdu ? 'درست رقم درج کریں' : 'Enter a valid amount')
+            : (LanguageController.isUrdu ? 'ادائیگی نیٹ بقایا رقم (Rs. ${_netDue.toStringAsFixed(2)}) سے زیادہ نہیں ہو سکتی' : 'Payment cannot exceed net due amount (Rs. ${_netDue.toStringAsFixed(2)})'),
         isError: true,
       );
       return;
@@ -128,7 +137,7 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
         Navigator.pop(context); // Close dialog
         showFormSnackBar(
           context,
-          message: 'Payment recorded successfully',
+          message: LanguageController.isUrdu ? 'ادائیگی کامیابی کے ساتھ ریکارڈ ہو گئی' : 'Payment recorded successfully',
         );
       }
       await _loadTotals();
@@ -136,7 +145,7 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
       if (mounted) {
         showFormSnackBar(
           context,
-          message: 'Error recording payment: $e',
+          message: LanguageController.isUrdu ? 'ادائیگی ریکارڈ کرنے میں خرابی: $e' : 'Error recording payment: $e',
           isError: true,
         );
       }
@@ -144,30 +153,37 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
   }
 
   void _showPaymentDialog() {
+    final isDark = ThemeController.isDarkMode;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? spaceCadet : Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppFormTokens.radiusLg),
         ),
-        title: const Text('Clear / Record Payment'),
+        title: Text(
+          LanguageController.isUrdu ? 'واضح کریں / ادائیگی ریکارڈ کریں' : 'Clear / Record Payment',
+          textDirection: LanguageController.contentTextDirection,
+          style: TextStyle(color: isDark ? Colors.white : oxfordBlue, fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          textDirection: LanguageController.contentTextDirection,
           children: [
             AppFormTextField(
               controller: paymentController,
               autofocus: true,
-              labelText: 'Amount (Max: Rs. ${_netDue.toStringAsFixed(2)})',
+              labelText: LanguageController.isUrdu ? 'رقم (زیادہ سے زیادہ: Rs. ${_netDue.toStringAsFixed(2)})' : 'Amount (Max: Rs. ${_netDue.toStringAsFixed(2)})',
               prefixText: 'Rs. ',
               prefixIcon: Icons.payments_outlined,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
             AppFormTextField(
               controller: paymentDescriptionController,
-              labelText: 'Description (Optional)',
+              labelText: LanguageController.isUrdu ? 'تفصیل (اختیاری)' : 'Description (Optional)',
               prefixIcon: Icons.notes_outlined,
               textCapitalization: TextCapitalization.sentences,
               textInputAction: TextInputAction.done,
@@ -177,11 +193,11 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           FormSecondaryButton(
-            label: 'Cancel',
+            label: LanguageController.isUrdu ? 'منسوخ کریں' : 'Cancel',
             onPressed: () => Navigator.pop(context),
           ),
           FormPrimaryButton(
-            label: 'Record Payment',
+            label: LanguageController.isUrdu ? 'ادائیگی ریکارڈ کریں' : 'Record Payment',
             onPressed: addPayment,
           ),
         ],
@@ -190,21 +206,30 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
   }
 
   void _showAddItemDialog() {
+    final isDark = ThemeController.isDarkMode;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: isDark ? spaceCadet : Colors.white,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppFormTokens.radiusLg),
         ),
-        title: const Text('Add Due Item'),
+        title: Text(
+          LanguageController.isUrdu ? 'بقیہ آئٹم شامل کریں' : 'Add Due Item',
+          textDirection: LanguageController.contentTextDirection,
+          style: TextStyle(color: isDark ? Colors.white : oxfordBlue, fontWeight: FontWeight.bold),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          textDirection: LanguageController.contentTextDirection,
           children: [
             AppFormTextField(
               controller: itemController,
               autofocus: true,
-              labelText: 'Item Name',
-              hintText: 'What was given?',
+              labelText: LanguageController.isUrdu ? 'آئٹم کا نام' : 'Item Name',
+              hintText: LanguageController.isUrdu ? 'کیا دیا گیا تھا؟' : 'What was given?',
               prefixIcon: Icons.shopping_bag_outlined,
               textCapitalization: TextCapitalization.words,
               textInputAction: TextInputAction.next,
@@ -212,19 +237,21 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
             const SizedBox(height: 12),
             AppFormTextField(
               controller: priceController,
-              labelText: 'Price / Amount',
+              labelText: LanguageController.isUrdu ? 'قیمت / رقم' : 'Price / Amount',
               prefixText: 'Rs. ',
               prefixIcon: Icons.sell_outlined,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
               textInputAction: TextInputAction.done,
             ),
             const SizedBox(height: 12),
             Text(
-              'Date & Time: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year} ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+              LanguageController.isUrdu 
+                  ? 'تاریخ اور وقت: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year} ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}' 
+                  : 'Date & Time: ${DateTime.now().day}/${DateTime.now().month}/${DateTime.now().year} ${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
+              textDirection: TextDirection.ltr,
               style: TextStyle(
                 fontSize: 12,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600,
               ),
             ),
           ],
@@ -232,11 +259,11 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
         actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           FormSecondaryButton(
-            label: 'Cancel',
+            label: LanguageController.isUrdu ? 'منسوخ کریں' : 'Cancel',
             onPressed: () => Navigator.pop(context),
           ),
           FormPrimaryButton(
-            label: 'Add Item',
+            label: LanguageController.isUrdu ? 'آئٹم شامل کریں' : 'Add Item',
             icon: Icons.add_rounded,
             onPressed: addDueItem,
           ),
@@ -247,144 +274,221 @@ class _AddDueAmountScreenState extends State<AddDueAmountScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.personName),
-        centerTitle: true,
+    final isDark = ThemeController.isDarkMode;
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(context).colorScheme.copyWith(primary: yinMnBlue),
+        scaffoldBackgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  // Net Due Status Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: _netDue > 0
-                          ? Colors.red.shade50
-                          : Colors.green.shade50,
-                      border: Border.all(
-                        color: _netDue > 0
-                            ? Colors.red.shade300
-                            : Colors.green.shade300,
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Total Given (Due):',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              'Rs. ${_totalGiven.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Total Paid (Received):',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            Text(
-                              'Rs. ${_totalPaid.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Net Due Amount:',
-                              style: TextStyle(
-                                fontSize: 17,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'Rs. ${_netDue.toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontSize: 22,
-                                fontWeight: FontWeight.bold,
-                                color: _netDue > 0 ? Colors.red : Colors.green,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Clear Due Action Button
-                  if (_netDue > 0)
-                    SizedBox(
+      child: Scaffold(
+        backgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: isDark ? spaceCadet : Colors.white,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: Icon(
+              Icons.chevron_left_rounded,
+              size: 28,
+              color: isDark ? jordyBlue : oxfordBlue,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            widget.personName,
+            textDirection: LanguageController.contentTextDirection,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : oxfordBlue,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: _isLoading
+            ? Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation(isDark ? jordyBlue : yinMnBlue),
+                ),
+              )
+            : Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  textDirection: LanguageController.contentTextDirection,
+                  children: [
+                    // Net Due Status Card
+                    Container(
                       width: double.infinity,
-                      child: MyButton(
-                        text: "Clear Due",
-                        onTap: _showPaymentDialog,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? spaceCadet.withOpacity(0.6)
+                            : (_netDue > 0 ? Colors.red.shade50 : Colors.green.shade50),
+                        border: Border.all(
+                          color: isDark
+                              ? (_netDue > 0 ? Colors.red.shade800 : Colors.green.shade800)
+                              : (_netDue > 0 ? Colors.red.shade300 : Colors.green.shade300),
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        textDirection: LanguageController.contentTextDirection,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            textDirection: LanguageController.contentTextDirection,
+                            children: [
+                              Text(
+                                LanguageController.isUrdu ? 'کل دیا گیا (بقیہ):' : 'Total Given (Due):',
+                                textDirection: LanguageController.contentTextDirection,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : oxfordBlue,
+                                ),
+                              ),
+                              Text(
+                                'Rs. ${_totalGiven.toStringAsFixed(2)}',
+                                textDirection: TextDirection.ltr,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.redAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            textDirection: LanguageController.contentTextDirection,
+                            children: [
+                              Text(
+                                LanguageController.isUrdu ? 'کل ادا کیا گیا (وصول ہوا):' : 'Total Paid (Received):',
+                                textDirection: LanguageController.contentTextDirection,
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : oxfordBlue,
+                                ),
+                              ),
+                              Text(
+                                'Rs. ${_totalPaid.toStringAsFixed(2)}',
+                                textDirection: TextDirection.ltr,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.greenAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                          Divider(
+                            height: 24,
+                            color: isDark ? jordyBlue.withOpacity(0.2) : Colors.grey.shade300,
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            textDirection: LanguageController.contentTextDirection,
+                            children: [
+                              Text(
+                                LanguageController.isUrdu ? 'نیٹ بقایا رقم:' : 'Net Due Amount:',
+                                textDirection: LanguageController.contentTextDirection,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : oxfordBlue,
+                                ),
+                              ),
+                              Text(
+                                'Rs. ${_netDue.toStringAsFixed(2)}',
+                                textDirection: TextDirection.ltr,
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: _netDue > 0 ? Colors.redAccent : Colors.greenAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: 20),
 
-                  const Spacer(),
+                    // Clear Due Action Button
+                    if (_netDue > 0)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isDark ? jordyBlue : yinMnBlue,
+                            foregroundColor: isDark ? oxfordBlue : Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: _showPaymentDialog,
+                          child: Text(
+                            LanguageController.isUrdu ? 'بقیہ صاف کریں' : 'Clear Due',
+                            textDirection: LanguageController.contentTextDirection,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
+                        ),
+                      ),
 
-                  // Operational Summary Card
-                  Card(
-                    elevation: 1,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                    const Spacer(),
+
+                    // Operational Summary Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: isDark ? spaceCadet.withOpacity(0.6) : Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isDark ? jordyBlue.withOpacity(0.15) : lavender,
+                        ),
+                      ),
                       child: Text(
-                        'Ledger Balance Status\n\n'
-                        'Total Due: Rs. ${_totalGiven.toStringAsFixed(2)}\n'
-                        'Total Paid: Rs. ${_totalPaid.toStringAsFixed(2)}\n'
-                        'Net Due: Rs. ${_netDue.toStringAsFixed(2)}',
+                        LanguageController.isUrdu 
+                            ? 'لیجر بیلنس کی حیثیت\n\n'
+                              'کل بقیہ: Rs. ${_totalGiven.toStringAsFixed(2)}\n'
+                              'کل ادا شدہ: Rs. ${_totalPaid.toStringAsFixed(2)}\n'
+                              'نیٹ بقایا: Rs. ${_netDue.toStringAsFixed(2)}'
+                            : 'Ledger Balance Status\n\n'
+                              'Total Due: Rs. ${_totalGiven.toStringAsFixed(2)}\n'
+                              'Total Paid: Rs. ${_totalPaid.toStringAsFixed(2)}\n'
+                              'Net Due: Rs. ${_netDue.toStringAsFixed(2)}',
                         textAlign: TextAlign.center,
-                        style: const TextStyle(
+                        textDirection: LanguageController.contentTextDirection,
+                        style: TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w500,
                           height: 1.5,
+                          color: isDark ? lavender : Colors.grey.shade700,
                         ),
                       ),
                     ),
-                  ),
-                  const Spacer(),
-                ],
+                    const Spacer(),
+                  ],
+                ),
               ),
-            ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _showAddItemDialog,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Due Item'),
+        floatingActionButton: FloatingActionButton.extended(
+          backgroundColor: isDark ? jordyBlue : oxfordBlue,
+          foregroundColor: isDark ? oxfordBlue : Colors.white,
+          onPressed: _showAddItemDialog,
+          icon: const Icon(Icons.add_rounded),
+          label: Text(
+            LanguageController.isUrdu ? 'بقیہ آئٹم شامل کریں' : 'Add Due Item',
+            textDirection: LanguageController.contentTextDirection,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+        ),
       ),
     );
   }

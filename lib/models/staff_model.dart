@@ -1,7 +1,41 @@
 import 'package:equatable/equatable.dart';
 
 enum EmploymentStatus { active, inactive, terminated }
+
 enum EmploymentType { fullTime, partTime, contract, freelance }
+
+extension EmploymentTypeExtension on EmploymentType {
+  String get dbValue {
+    switch (this) {
+      case EmploymentType.fullTime:
+        return 'full_time';
+      case EmploymentType.partTime:
+        return 'part_time';
+      case EmploymentType.contract:
+        return 'contract';
+      case EmploymentType.freelance:
+        return 'freelance';
+    }
+  }
+
+  static EmploymentType fromString(String? value) {
+    switch (value) {
+      case 'full_time':
+      case 'fullTime':
+        return EmploymentType.fullTime;
+      case 'part_time':
+      case 'partTime':
+        return EmploymentType.partTime;
+      case 'contract':
+        return EmploymentType.contract;
+      case 'freelance':
+        return EmploymentType.freelance;
+      default:
+        return EmploymentType.fullTime;
+    }
+  }
+}
+
 enum AttendanceStatus { present, absent, halfDay, leave, late }
 enum LeaveType { sick, casual, annual, unpaid, custom }
 enum LeaveStatus { pending, approved, rejected }
@@ -59,10 +93,7 @@ class Employee extends Equatable {
       department: json['department'] as String? ?? 'General',
       joiningDate: DateTime.parse(json['joining_date'] as String),
       salary: (json['salary'] as num?)?.toDouble() ?? 0.0,
-      employmentType: EmploymentType.values.firstWhere(
-        (e) => e.name == json['employment_type'],
-        orElse: () => EmploymentType.fullTime,
-      ),
+      employmentType: EmploymentTypeExtension.fromString(json['employment_type'] as String?),
       status: EmploymentStatus.values.firstWhere(
         (e) => e.name == json['status'],
         orElse: () => EmploymentStatus.active,
@@ -86,7 +117,7 @@ class Employee extends Equatable {
         'department': department,
         'joining_date': joiningDate.toIso8601String().split('T')[0],
         'salary': salary,
-        'employment_type': employmentType.name,
+        'employment_type': employmentType.dbValue,
         'status': status.name,
         'photo_url': photoUrl,
         'notes': notes,

@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
 
 class CreateInvoiceFAB extends StatelessWidget {
   const CreateInvoiceFAB({super.key});
 
-  /// Opens the global Dark Bottom Sheet shown in your screenshot
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
+
+  /// Opens the modernized theme-adaptive bottom sheet
   static void showCreateInvoiceModal(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF1E1E1E), // Dark background matching your screenshot
-            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          decoration: BoxDecoration(
+            color: isDark ? spaceCadet : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
           ),
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -26,18 +36,19 @@ class CreateInvoiceFAB extends StatelessWidget {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Colors.white24,
+                  color: isDark ? jordyBlue.withOpacity(0.3) : Colors.grey.shade300,
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
 
               // Option 1: Create New Invoice Card
               _buildOptionCard(
-                icon: Icons.note_add_outlined,
-                iconColor: const Color(0xFFFFB800), // Amber icon background
+                icon: Icons.note_add_rounded,
+                iconColor: const Color(0xFFFFB800),
                 title: 'Create new invoice',
                 subtitle:
                     'Add all required details to easily create an invoice and save it to your ledger.',
+                isDark: isDark,
                 onTap: () {
                   Navigator.pop(context);
                   context.push('/bill-book/create');
@@ -48,10 +59,11 @@ class CreateInvoiceFAB extends StatelessWidget {
               // Option 2: Add Existing Invoice Card
               _buildOptionCard(
                 icon: Icons.post_add_rounded,
-                iconColor: const Color(0xFF86EFAC), // Light green icon background
+                iconColor: const Color(0xFF22C55E),
                 title: 'Add an existing invoice',
                 subtitle:
                     'Record an existing transaction or draft invoice into your database.',
+                isDark: isDark,
                 onTap: () {
                   Navigator.pop(context);
                   context.push('/bill-book/create');
@@ -70,6 +82,7 @@ class CreateInvoiceFAB extends StatelessWidget {
     required Color iconColor,
     required String title,
     required String subtitle,
+    required bool isDark,
     required VoidCallback onTap,
   }) {
     return Material(
@@ -80,17 +93,20 @@ class CreateInvoiceFAB extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: const Color(0xFF2B2B2B), // Dark card background matching screenshot
+            color: isDark ? oxfordBlue.withOpacity(0.7) : const Color(0xFFF1F5F9),
             borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark ? jordyBlue.withOpacity(0.15) : lavender,
+            ),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
+                  color: iconColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, color: iconColor, size: 22),
               ),
@@ -101,8 +117,8 @@ class CreateInvoiceFAB extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : oxfordBlue,
                         fontWeight: FontWeight.bold,
                         fontSize: 15,
                       ),
@@ -110,8 +126,8 @@ class CreateInvoiceFAB extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       subtitle,
-                      style: const TextStyle(
-                        color: Colors.white60,
+                      style: TextStyle(
+                        color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600,
                         fontSize: 12,
                         height: 1.3,
                       ),
@@ -128,6 +144,8 @@ class CreateInvoiceFAB extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
+
     return Positioned(
       right: 16,
       bottom: 24,
@@ -136,25 +154,25 @@ class CreateInvoiceFAB extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.black,
+            color: isDark ? jordyBlue : oxfordBlue,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.2),
+                color: (isDark ? spaceCadet : oxfordBlue).withOpacity(0.25),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               )
             ],
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.add, color: Colors.white, size: 20),
-              SizedBox(width: 6),
+              Icon(Icons.add_rounded, color: isDark ? oxfordBlue : Colors.white, size: 20),
+              const SizedBox(width: 6),
               Text(
                 'Create invoice',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: isDark ? oxfordBlue : Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
                 ),

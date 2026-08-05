@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 import '../../../services/expense_service.dart';
 import '../../../widgets/forms/form_widgets.dart';
 
@@ -31,6 +34,13 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
   bool _isLoading = false;
 
   List<Map<String, dynamic>> _customers = [];
+
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
 
   final List<String> _categories = [
     'General',
@@ -92,7 +102,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         if (mounted) {
           showFormSnackBar(
             context,
-            message: 'Expense added successfully!',
+            message: LanguageController.isUrdu ? 'خسرہ کامیابی کے ساتھ شامل کر دیا گیا!' : 'Expense added successfully!',
           );
           Navigator.pop(context, true);
         }
@@ -100,7 +110,7 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
         if (mounted) {
           showFormSnackBar(
             context,
-            message: 'Failed to add expense: $e',
+            message: LanguageController.isUrdu ? 'خسرہ شامل کرنے میں ناکام: $e' : 'Failed to add expense: $e',
             isError: true,
           );
         }
@@ -112,115 +122,136 @@ class _AddExpenseScreenState extends State<AddExpenseScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return FormScaffold(
-      appBar: formAppBar(
-        context,
-        title: 'Add Expense',
-        subtitle: 'Record a business expense',
+    final isDark = ThemeController.isDarkMode;
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: yinMnBlue,
+            ),
       ),
-      bottomBar: FormBottomBar(
-        primaryLabel: 'Save Expense',
-        primaryIcon: Icons.check_rounded,
-        isLoading: _isLoading,
-        onPrimary: _isLoading ? null : _saveExpense,
-        secondaryLabel: 'Cancel',
-        onSecondary: () => Navigator.maybePop(context),
-      ),
-      children: [
-        Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              FormSectionCard(
-                title: 'Expense details',
-                subtitle: 'Link, categorize, and set the amount',
-                icon: Icons.receipt_long_outlined,
-                children: [
-                  AppFormDropdown<String?>(
-                    value: _selectedCustomerId,
-                    labelText: 'Link to Customer (Optional)',
-                    hintText: 'General Expense (No Customer)',
-                    prefixIcon: Icons.person_outline_rounded,
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('General Expense (No Customer)'),
-                      ),
-                      ..._customers.map(
-                        (c) => DropdownMenuItem<String?>(
-                          value: c['id'] as String,
-                          child: Text(c['name'] ?? 'Unknown'),
-                        ),
-                      ),
-                    ],
-                    onChanged: (val) =>
-                        setState(() => _selectedCustomerId = val),
-                  ),
-                  AppFormDropdown<String>(
-                    value: _category,
-                    labelText: 'Category',
-                    prefixIcon: Icons.category_outlined,
-                    items: _categories
-                        .map(
-                          (cat) =>
-                              DropdownMenuItem(value: cat, child: Text(cat)),
-                        )
-                        .toList(),
-                    onChanged: (val) => setState(() => _category = val!),
-                  ),
-                  AppFormTextField(
-                    focusNode: _amountFocus,
-                    autofocus: true,
-                    labelText: 'Amount (Rs.) *',
-                    hintText: '0.00',
-                    prefixIcon: Icons.currency_rupee_rounded,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    textInputAction: TextInputAction.next,
-                    validator: (val) {
-                      if (val == null || val.isEmpty) {
-                        return 'Please enter an amount';
-                      }
-                      if (double.tryParse(val) == null) {
-                        return 'Enter a valid number';
-                      }
-                      return null;
-                    },
-                    onSaved: (val) => _amount = double.parse(val!),
-                  ),
-                ],
-              ),
-              FormSectionCard(
-                title: 'Description',
-                subtitle: 'Optional context for this expense',
-                icon: Icons.notes_outlined,
-                children: [
-                  AppFormTextField(
-                    labelText: 'Description',
-                    hintText: 'What was this expense for?',
-                    prefixIcon: Icons.description_outlined,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.next,
-                    onSaved: (val) => _description = val?.trim() ?? '',
-                  ),
-                  AppFormTextField(
-                    labelText: 'Notes',
-                    hintText: 'Any extra details…',
-                    prefixIcon: Icons.sticky_note_2_outlined,
-                    maxLines: 3,
-                    textCapitalization: TextCapitalization.sentences,
-                    textInputAction: TextInputAction.done,
-                    onSaved: (val) => _notes = val?.trim() ?? '',
-                    onFieldSubmitted: (_) => _saveExpense(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
+      child: FormScaffold(
+        appBar: formAppBar(
+          context,
+          title: LanguageController.isUrdu ? 'خرچہ شامل کریں' : 'Add Expense',
+          subtitle: LanguageController.isUrdu ? 'کاروباری خرچہ درج کریں' : 'Record a business expense',
         ),
-      ],
+        bottomBar: FormBottomBar(
+          primaryLabel: LanguageController.isUrdu ? 'خرچہ محفوظ کریں' : 'Save Expense',
+          primaryIcon: Icons.check_rounded,
+          isLoading: _isLoading,
+          onPrimary: _isLoading ? null : _saveExpense,
+          secondaryLabel: LanguageController.isUrdu ? 'منسوخ کریں' : 'Cancel',
+          onSecondary: () => Navigator.maybePop(context),
+        ),
+        children: [
+          Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                FormSectionCard(
+                  title: LanguageController.isUrdu ? 'خرچے کی تفصیلات' : 'Expense details',
+                  subtitle: LanguageController.isUrdu ? 'لنک کریں، زمرہ منتخب کریں، اور رقم درج کریں' : 'Link, categorize, and set the amount',
+                  icon: Icons.receipt_long_outlined,
+                  children: [
+                    AppFormDropdown<String?>(
+                      value: _selectedCustomerId,
+                      labelText: LanguageController.isUrdu ? 'گاہک سے لنک کریں (اختیاری)' : 'Link to Customer (Optional)',
+                      hintText: LanguageController.isUrdu ? 'جنرل خرچہ (کوئی گاہک نہیں)' : 'General Expense (No Customer)',
+                      prefixIcon: Icons.person_outline_rounded,
+                      items: [
+                        DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text(
+                            LanguageController.isUrdu ? 'جنرل خرچہ (کوئی گاہک نہیں)' : 'General Expense (No Customer)',
+                            textDirection: LanguageController.contentTextDirection,
+                          ),
+                        ),
+                        ..._customers.map(
+                          (c) => DropdownMenuItem<String?>(
+                            value: c['id'] as String,
+                            child: Text(
+                              c['name'] ?? (LanguageController.isUrdu ? 'نامعلوم' : 'Unknown'),
+                              textDirection: LanguageController.contentTextDirection,
+                            ),
+                          ),
+                        ),
+                      ],
+                      onChanged: (val) =>
+                          setState(() => _selectedCustomerId = val),
+                    ),
+                    AppFormDropdown<String>(
+                      value: _category,
+                      labelText: LanguageController.isUrdu ? 'زمرہ' : 'Category',
+                      prefixIcon: Icons.category_outlined,
+                      items: _categories
+                          .map(
+                            (cat) =>
+                                DropdownMenuItem(
+                                  value: cat, 
+                                  child: Text(
+                                    cat,
+                                    textDirection: LanguageController.contentTextDirection,
+                                  ),
+                                ),
+                          )
+                          .toList(),
+                      onChanged: (val) => setState(() => _category = val!),
+                    ),
+                    AppFormTextField(
+                      focusNode: _amountFocus,
+                      autofocus: true,
+                      labelText: LanguageController.isUrdu ? 'رقم (روپے) *' : 'Amount (Rs.) *',
+                      hintText: '0.00',
+                      prefixIcon: Icons.currency_rupee_rounded,
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      textInputAction: TextInputAction.next,
+                      validator: (val) {
+                        if (val == null || val.isEmpty) {
+                          return LanguageController.isUrdu ? 'براہ کرم رقم درج کریں' : 'Please enter an amount';
+                        }
+                        if (double.tryParse(val) == null) {
+                          return LanguageController.isUrdu ? 'درست نمبر درج کریں' : 'Enter a valid number';
+                        }
+                        return null;
+                      },
+                      onSaved: (val) => _amount = double.parse(val!),
+                    ),
+                  ],
+                ),
+                FormSectionCard(
+                  title: LanguageController.isUrdu ? 'تفصیل' : 'Description',
+                  subtitle: LanguageController.isUrdu ? 'اس خرچے کے لیے اختیاری سیاق و سباق' : 'Optional context for this expense',
+                  icon: Icons.notes_outlined,
+                  children: [
+                    AppFormTextField(
+                      labelText: LanguageController.isUrdu ? 'تفصیل' : 'Description',
+                      hintText: LanguageController.isUrdu ? 'یہ خرچہ کس چیز کے لیے تھا؟' : 'What was this expense for?',
+                      prefixIcon: Icons.description_outlined,
+                      textCapitalization: TextCapitalization.sentences,
+                      textInputAction: TextInputAction.next,
+                      onSaved: (val) => _description = val?.trim() ?? '',
+                    ),
+                    AppFormTextField(
+                      labelText: LanguageController.isUrdu ? 'نوٹس' : 'Notes',
+                      hintText: LanguageController.isUrdu ? 'کوئی اضافی تفصیلات…' : 'Any extra details…',
+                      prefixIcon: Icons.sticky_note_2_outlined,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
+                      textInputAction: TextInputAction.done,
+                      onSaved: (val) => _notes = val?.trim() ?? '',
+                      onFieldSubmitted: (_) => _saveExpense(),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

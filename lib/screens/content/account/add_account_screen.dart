@@ -7,6 +7,8 @@ import 'package:digital_khata/l10n/app_localizations.dart';
 import 'package:digital_khata/models/account_model.dart';
 import 'package:digital_khata/services/account_service.dart';
 import 'package:digital_khata/widgets/forms/form_widgets.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 
 class AddEditAccountScreen extends ConsumerStatefulWidget {
   final String? accountId;
@@ -29,6 +31,13 @@ class _AddEditAccountScreenState extends ConsumerState<AddEditAccountScreen> {
   bool _isSaving = false;
 
   final SupabaseClient _supabase = Supabase.instance.client;
+
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
 
   @override
   void initState() {
@@ -152,83 +161,94 @@ class _AddEditAccountScreenState extends ConsumerState<AddEditAccountScreen> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final isEditing = widget.accountId != null;
+    final isDark = ThemeController.isDarkMode;
 
-    return FormScaffold(
-      appBar: formAppBar(
-        context,
-        title: isEditing ? l10n.editAccount : l10n.addAccount,
-        subtitle: isEditing
-            ? 'Update cash or bank account'
-            : 'Create a cash or bank account',
-      ),
-      isLoading: _isLoading,
-      bottomBar: FormBottomBar(
-        primaryLabel: isEditing ? l10n.update : l10n.save,
-        primaryIcon: Icons.check_rounded,
-        isLoading: _isSaving,
-        onPrimary: _isSaving ? null : _saveAccount,
-        secondaryLabel: 'Cancel',
-        onSecondary: () {
-          if (Navigator.canPop(context)) {
-            Navigator.pop(context);
-          } else {
-            context.pop();
-          }
-        },
-      ),
-      children: [
-        FormSectionCard(
-          title: 'Account details',
-          subtitle: 'Name and account type',
-          icon: Icons.account_balance_outlined,
-          children: [
-            AppFormTextField(
-              controller: _nameController,
-              autofocus: true,
-              labelText: l10n.name,
-              hintText: 'e.g., Main Cash Drawer, HBL Bank',
-              prefixIcon: Icons.account_balance_wallet_outlined,
-              textCapitalization: TextCapitalization.words,
-              textInputAction: TextInputAction.next,
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: yinMnBlue,
             ),
-            AppFormDropdown<AccountType>(
-              value: _selectedType,
-              labelText: l10n.type,
-              prefixIcon: Icons.category_outlined,
-              items: AccountType.values
-                  .map(
-                    (type) => DropdownMenuItem(
-                      value: type,
-                      child: Text(type.displayName),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                if (value != null) {
-                  setState(() => _selectedType = value);
-                }
-              },
-            ),
-            if (!isEditing)
+      ),
+      child: FormScaffold(
+        appBar: formAppBar(
+          context,
+          title: isEditing ? l10n.editAccount : l10n.addAccount,
+          subtitle: isEditing
+              ? (LanguageController.isUrdu ? 'نقد یا بینک اکاؤنٹ اپ ڈیٹ کریں' : 'Update cash or bank account')
+              : (LanguageController.isUrdu ? 'نقد یا بینک اکاؤنٹ بنائیں' : 'Create a cash or bank account'),
+        ),
+        isLoading: _isLoading,
+        bottomBar: FormBottomBar(
+          primaryLabel: isEditing ? l10n.update : l10n.save,
+          primaryIcon: Icons.check_rounded,
+          isLoading: _isSaving,
+          onPrimary: _isSaving ? null : _saveAccount,
+          secondaryLabel: LanguageController.isUrdu ? 'منسوخ کریں' : 'Cancel',
+          onSecondary: () {
+            if (Navigator.canPop(context)) {
+              Navigator.pop(context);
+            } else {
+              context.pop();
+            }
+          },
+        ),
+        children: [
+          FormSectionCard(
+            title: LanguageController.isUrdu ? 'اکاؤنٹ کی تفصیلات' : 'Account details',
+            subtitle: LanguageController.isUrdu ? 'نام اور اکاؤنٹ کی قسم' : 'Name and account type',
+            icon: Icons.account_balance_outlined,
+            children: [
               AppFormTextField(
-                controller: _openingBalanceController,
-                labelText: l10n.openingBalance,
-                hintText: '0.00',
-                prefixText: 'Rs. ',
-                prefixIcon: Icons.payments_outlined,
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                textInputAction: TextInputAction.done,
-                onFieldSubmitted: (_) => _saveAccount(),
+                controller: _nameController,
+                autofocus: true,
+                labelText: l10n.name,
+                hintText: LanguageController.isUrdu ? 'مثال کے طور پر، مین کیش دراز، ایچ بی ایل بینک' : 'e.g., Main Cash Drawer, HBL Bank',
+                prefixIcon: Icons.account_balance_wallet_outlined,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
               ),
-          ],
-        ),
-        FormInfoBanner(
-          message: '${l10n.type}: ${_selectedType.displayName}',
-          icon: Icons.info_outline_rounded,
-        ),
-        const SizedBox(height: 8),
-      ],
+              AppFormDropdown<AccountType>(
+                value: _selectedType,
+                labelText: l10n.type,
+                prefixIcon: Icons.category_outlined,
+                items: AccountType.values
+                    .map(
+                      (type) => DropdownMenuItem(
+                        value: type,
+                        child: Text(
+                          type.displayName,
+                          textDirection: LanguageController.contentTextDirection,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _selectedType = value);
+                  }
+                },
+              ),
+              if (!isEditing)
+                AppFormTextField(
+                  controller: _openingBalanceController,
+                  labelText: l10n.openingBalance,
+                  hintText: '0.00',
+                  prefixText: 'Rs. ',
+                  prefixIcon: Icons.payments_outlined,
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                  textInputAction: TextInputAction.done,
+                  onFieldSubmitted: (_) => _saveAccount(),
+                ),
+            ],
+          ),
+          FormInfoBanner(
+            message: '${l10n.type}: ${_selectedType.displayName}',
+            icon: Icons.info_outline_rounded,
+          ),
+          const SizedBox(height: 8),
+        ],
+      ),
     );
   }
 }

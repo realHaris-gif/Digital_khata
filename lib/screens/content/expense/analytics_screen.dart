@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 import 'package:digital_khata/services/analytics_service.dart';
+import 'package:digital_khata/theme/app_theme.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({Key? key}) : super(key: key);
@@ -11,170 +14,484 @@ class AnalyticsScreen extends StatefulWidget {
 class _AnalyticsScreenState extends State<AnalyticsScreen> {
   late final AnalyticsService _analyticsService;
 
+  int _selectedTab = 0; // 0: By Category, 1: All analytics
+  int _selectedFilterIndex = 0; // Filter index for chips
+  DateTime _currentSelectedDate = DateTime.now();
+  bool _showTopCustomers = false;
+
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
+
+  final List<String> _monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  final List<String> _filters = [
+    'All',
+    'Clear',
+    'Partial',
+    'High Due',
+    'Overdue'
+  ];
+
   @override
   void initState() {
     super.initState();
     _analyticsService = AnalyticsService();
   }
 
+  void _changeMonth(int increment) {
+    setState(() {
+      _currentSelectedDate = DateTime(
+        _currentSelectedDate.year,
+        _currentSelectedDate.month + increment,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final primaryTextColor = theme.colorScheme.onSurface;
+    final isDark = ThemeController.isDarkMode;
 
     return Scaffold(
+      backgroundColor: isDark ? oxfordBlue : lavender.withValues(alpha: 0.3),
       appBar: AppBar(
-        title: const Text('Analytics & Reports'),
-        centerTitle: true,
+        backgroundColor: Colors.transparent,
         elevation: 0,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios_new_rounded,
+            color: isDark ? jordyBlue : oxfordBlue,
+            size: 20,
+          ),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
+        title: Text(
+          LanguageController.isUrdu ? 'تجزیات' : 'Analytics',
+          textDirection: LanguageController.contentTextDirection,
+          style: TextStyle(
+            color: isDark ? Colors.white : oxfordBlue,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 90),
+        padding: const EdgeInsets.only(left: 16, right: 16, top: 8, bottom: 90),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top metrics
-            _buildTopMetricsSection(primaryTextColor),
+            // --- 1. SEGMENTED TAB TOGGLE ("By Category" / "All analytics") ---
+            Container(
+              height: 48,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: isDark ? spaceCadet : lavender.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: isDark ? jordyBlue.withValues(alpha: 0.2) : Colors.transparent,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedTab = 0),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        decoration: BoxDecoration(
+                          color: _selectedTab == 0
+                              ? yinMnBlue
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          LanguageController.isUrdu ? 'زمرہ کے لحاظ سے' : 'By Category',
+                          textDirection: LanguageController.contentTextDirection,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: _selectedTab == 0
+                                ? Colors.white
+                                : (isDark
+                                    ? lavender.withValues(alpha: 0.7)
+                                    : spaceCadet.withValues(alpha: 0.7)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => setState(() => _selectedTab = 1),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        decoration: BoxDecoration(
+                          color: _selectedTab == 1
+                              ? yinMnBlue
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          LanguageController.isUrdu ? 'تمام تجزیات' : 'All analytics',
+                          textDirection: LanguageController.contentTextDirection,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                            color: _selectedTab == 1
+                                ? Colors.white
+                                : (isDark
+                                    ? lavender.withValues(alpha: 0.7)
+                                    : spaceCadet.withValues(alpha: 0.7)),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 20),
+
+            // --- 2. WORKING MONTH SELECTOR BAR ---
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.chevron_left_rounded,
+                    color: isDark ? jordyBlue : spaceCadet,
+                  ),
+                  onPressed: () => _changeMonth(-1),
+                ),
+                Text(
+                  '${_monthNames[_currentSelectedDate.month - 1]} ${_currentSelectedDate.year}',
+                  textDirection: TextDirection.ltr,
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : oxfordBlue,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.chevron_right_rounded,
+                    color: isDark ? jordyBlue : spaceCadet,
+                  ),
+                  onPressed: () => _changeMonth(1),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            // --- 3. FILTER CHIPS ROW ---
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                textDirection: LanguageController.contentTextDirection,
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: isDark ? spaceCadet : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isDark ? jordyBlue.withValues(alpha: 0.2) : lavender,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.grid_view_rounded,
+                      size: 18,
+                      color: isDark ? jordyBlue : yinMnBlue,
+                    ),
+                  ),
+                  ...List.generate(_filters.length, (index) {
+                    final isSelected = _selectedFilterIndex == index;
+                    final filterLabel = _filters[index];
+                    final translatedFilterLabel = LanguageController.isUrdu
+                        ? (filterLabel == 'All' ? 'سب' : filterLabel == 'Clear' ? 'صاف' : filterLabel == 'Partial' ? 'جزوی' : filterLabel == 'High Due' ? 'زیادہ بقایا' : 'اوورڈیو')
+                        : filterLabel;
+
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedFilterIndex = index),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? yinMnBlue
+                              : (isDark
+                                  ? spaceCadet.withValues(alpha: 0.6)
+                                  : Colors.white),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isSelected
+                                ? yinMnBlue
+                                : (isDark
+                                    ? jordyBlue.withValues(alpha: 0.2)
+                                    : lavender),
+                          ),
+                        ),
+                        child: Row(
+                          textDirection: LanguageController.contentTextDirection,
+                          children: [
+                            Text(
+                              translatedFilterLabel,
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isSelected
+                                    ? FontWeight.bold
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? Colors.white
+                                    : (isDark
+                                        ? lavender
+                                        : oxfordBlue),
+                              ),
+                            ),
+                            if (isSelected) ...[
+                              const SizedBox(width: 4),
+                              const Icon(Icons.close_rounded,
+                                  size: 14, color: Colors.white),
+                            ],
+                          ],
+                        ),
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+
             const SizedBox(height: 24),
 
-            // Overdue customers alert
-            _buildOverdueCustomersSection(primaryTextColor),
+            // --- 4. REAL MONTHLY SUMMARY BAR CHART ---
+            FutureBuilder<List<Map<String, dynamic>>>(
+              future: _analyticsService.getMonthlySummary(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const SizedBox(
+                    height: 180,
+                    child: Center(child: CircularProgressIndicator(color: yinMnBlue)),
+                  );
+                }
+
+                final monthlyData = snapshot.data ?? [];
+                if (monthlyData.isEmpty) {
+                  return Container(
+                    height: 120,
+                    alignment: Alignment.center,
+                    child: Text(
+                      LanguageController.isUrdu ? 'کوئی لین دین کی ہسٹری دستیاب نہیں ہے' : 'No transaction history available',
+                      textDirection: LanguageController.contentTextDirection,
+                      style: TextStyle(
+                        color: isDark ? lavender.withValues(alpha: 0.6) : spaceCadet.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  );
+                }
+
+                double maxVal = 1.0;
+                for (var item in monthlyData) {
+                  final due = (item['due'] as num?)?.toDouble() ?? 0.0;
+                  if (due > maxVal) maxVal = due;
+                }
+
+                final displayData = monthlyData.take(6).toList().reversed.toList();
+
+                return SizedBox(
+                  height: 190,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: List.generate(displayData.length, (index) {
+                      final item = displayData[index];
+                      final monthName = (item['month'] as String? ?? '').split(' ').first;
+                      final dueVal = (item['due'] as num?)?.toDouble() ?? 0.0;
+                      final isActive = index == displayData.length - 1;
+                      final heightRatio = (dueVal / maxVal).clamp(0.12, 1.0);
+
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            'Rs.${dueVal.toStringAsFixed(0)}',
+                            textDirection: TextDirection.ltr,
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight:
+                                  isActive ? FontWeight.bold : FontWeight.normal,
+                              color: isDark
+                                  ? lavender.withValues(alpha: 0.7)
+                                  : spaceCadet.withValues(alpha: 0.6),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Container(
+                            width: 28,
+                            height: 110 * heightRatio,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? yinMnBlue
+                                  : (isDark
+                                      ? spaceCadet
+                                      : lavender),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            monthName,
+                            textDirection: TextDirection.ltr,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight:
+                                  isActive ? FontWeight.bold : FontWeight.w500,
+                              color: isActive
+                                  ? (isDark ? Colors.white : oxfordBlue)
+                                  : (isDark
+                                      ? lavender.withValues(alpha: 0.7)
+                                      : spaceCadet.withValues(alpha: 0.6)),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 28),
+
+            // --- 5. REAL 3-COLUMN METRIC CARDS ---
+            FutureBuilder<Map<String, dynamic>>(
+              future: _analyticsService.getCustomerAnalytics(),
+              builder: (context, snapshot) {
+                final data = snapshot.data ?? {};
+                final totalDue = (data['totalDue'] as num?)?.toDouble() ?? 0.0;
+                final averageDue = (data['averageDue'] as num?)?.toDouble() ?? 0.0;
+                final highestDue = (data['highestDue'] as num?)?.toDouble() ?? 0.0;
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricCard(
+                        icon: Icons.trending_up_rounded,
+                        value: 'Rs. ${averageDue.toStringAsFixed(0)}',
+                        label: LanguageController.isUrdu ? 'اوسط بقایا' : 'Average Due',
+                        isDark: isDark,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildMetricCard(
+                        icon: Icons.account_balance_wallet_outlined,
+                        value: 'Rs. ${totalDue.toStringAsFixed(0)}',
+                        label: LanguageController.isUrdu ? 'کل بقایا' : 'Total Due',
+                        isDark: isDark,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildMetricCard(
+                        icon: Icons.arrow_upward_rounded,
+                        value: 'Rs. ${highestDue.toStringAsFixed(0)}',
+                        label: LanguageController.isUrdu ? 'سب سے زیادہ بقایا' : 'Highest Due',
+                        isDark: isDark,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+
             const SizedBox(height: 24),
 
-            // Payment status distribution
-            _buildPaymentStatusSection(primaryTextColor),
-            const SizedBox(height: 24),
+            // --- 6. REAL OVERDUE PAYMENTS SECTION ---
+            _buildOverdueCustomersSection(isDark),
 
-            // Top customers
-            _buildTopCustomersSection(primaryTextColor),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
 
-            // Monthly summary
-            _buildMonthlySummarySection(primaryTextColor),
+            // --- 7. WORKING EXPANDABLE LIST TILE CARDS ---
+            _buildListTileCard(
+              title: LanguageController.isUrdu ? 'ٹاپ گاہکوں کا جائزہ' : 'Top Customers Overview',
+              isDark: isDark,
+              trailingIcon: _showTopCustomers
+                  ? Icons.keyboard_arrow_up_rounded
+                  : Icons.keyboard_arrow_down_rounded,
+              onTap: () {
+                setState(() {
+                  _showTopCustomers = !_showTopCustomers;
+                });
+              },
+            ),
+
+            if (_showTopCustomers) ...[
+              const SizedBox(height: 12),
+              _buildTopCustomersList(isDark),
+            ],
+
+            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildTopMetricsSection(Color primaryTextColor) {
-    return FutureBuilder<Map<String, dynamic>>(
-      future: _analyticsService.getCustomerAnalytics(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-
-        if (snapshot.hasError) {
-          return Text(
-            'Error: ${snapshot.error}',
-            style: TextStyle(color: primaryTextColor),
-          );
-        }
-
-        final data = snapshot.data ?? {};
-        final totalDue = (data['totalDue'] as num?)?.toDouble() ?? 0.0;
-        final totalCustomers = (data['totalCustomers'] as int?) ?? 0;
-        final averageDue = (data['averageDue'] as num?)?.toDouble() ?? 0.0;
-        final highestDue = (data['highestDue'] as num?)?.toDouble() ?? 0.0;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Key Metrics',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryTextColor,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    title: 'Total Due',
-                    value: 'Rs. ${totalDue.toStringAsFixed(2)}',
-                    icon: Icons.money,
-                    color: Colors.redAccent,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildMetricCard(
-                    title: 'Customers',
-                    value: totalCustomers.toString(),
-                    icon: Icons.people,
-                    color: Colors.blueAccent,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildMetricCard(
-                    title: 'Avg Due',
-                    value: 'Rs. ${averageDue.toStringAsFixed(2)}',
-                    icon: Icons.trending_up,
-                    color: Colors.orangeAccent,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildMetricCard(
-                    title: 'Highest Due',
-                    value: 'Rs. ${highestDue.toStringAsFixed(2)}',
-                    icon: Icons.arrow_upward,
-                    color: Colors.purpleAccent,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Widget _buildMetricCard({
-    required String title,
-    required String value,
     required IconData icon,
-    required Color color,
+    required String value,
+    required String label,
+    required bool isDark,
   }) {
-    final theme = Theme.of(context);
-    final primaryTextColor = theme.colorScheme.onSurface;
-
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 10),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        color: isDark ? spaceCadet.withValues(alpha: 0.6) : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark ? jordyBlue.withValues(alpha: 0.2) : lavender,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.w600,
+          Icon(icon, size: 20, color: isDark ? jordyBlue : yinMnBlue),
+          const SizedBox(height: 12),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              value,
+              textDirection: TextDirection.ltr,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : oxfordBlue,
+              ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
-            value,
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textDirection: LanguageController.contentTextDirection,
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: primaryTextColor,
+              fontSize: 11,
+              color: isDark ? lavender.withValues(alpha: 0.7) : spaceCadet.withValues(alpha: 0.6),
             ),
           ),
         ],
@@ -182,7 +499,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     );
   }
 
-  Widget _buildOverdueCustomersSection(Color primaryTextColor) {
+  Widget _buildOverdueCustomersSection(bool isDark) {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _analyticsService.getOverdueCustomers(),
       builder: (context, snapshot) {
@@ -196,17 +513,19 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: Colors.green.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
             ),
-            child: const Row(
+            child: Row(
+              textDirection: LanguageController.contentTextDirection,
               children: [
-                Icon(Icons.check_circle, color: Colors.green),
-                SizedBox(width: 12),
+                const Icon(Icons.check_circle_rounded, color: Colors.green),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Text(
-                    'No overdue payments! Great job!',
-                    style: TextStyle(
+                    LanguageController.isUrdu ? 'کوئی بقایا ادائگیاں نہیں! زبردست کام!' : 'No overdue payments! Great job!',
+                    textDirection: LanguageController.contentTextDirection,
+                    style: const TextStyle(
                       color: Colors.green,
                       fontWeight: FontWeight.w600,
                     ),
@@ -217,220 +536,92 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           );
         }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Overdue Payments (30+ days)',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryTextColor,
-              ),
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isDark ? spaceCadet.withValues(alpha: 0.6) : Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isDark ? jordyBlue.withValues(alpha: 0.2) : lavender,
             ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-              ),
-              child: Column(
-                children: List.generate(
-                  overdueCustomers.length,
-                  (index) => _buildOverdueCustomerTile(
-                    overdueCustomers[index],
-                    index,
-                    overdueCustomers.length,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildOverdueCustomerTile(
-    Map<String, dynamic> customer,
-    int index,
-    int totalCount,
-  ) {
-    final theme = Theme.of(context);
-    final primaryTextColor = theme.colorScheme.onSurface;
-    final secondaryTextColor = theme.colorScheme.onSurfaceVariant;
-
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
-          Row(
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            textDirection: LanguageController.contentTextDirection,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      customer['name'] ?? 'Unknown',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: primaryTextColor,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${customer['daysSinceLastTransaction']} days overdue',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: secondaryTextColor,
-                      ),
-                    ),
-                  ],
+              Text(
+                LanguageController.isUrdu ? 'زیر التوا ادائگیاں (30+ دن)' : 'Overdue Payments (30+ days)',
+                textDirection: LanguageController.contentTextDirection,
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : oxfordBlue,
                 ),
               ),
-              Text(
-                'Rs. ${(customer['due'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: Colors.redAccent,
-                ),
+              const SizedBox(height: 12),
+              ...List.generate(
+                overdueCustomers.length,
+                (index) {
+                  final customer = overdueCustomers[index];
+                  final days = customer['daysSinceLastTransaction'] ?? 0;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      textDirection: LanguageController.contentTextDirection,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          textDirection: LanguageController.contentTextDirection,
+                          children: [
+                            Text(
+                              customer['name'] ?? (LanguageController.isUrdu ? 'نامعلوم' : 'Unknown'),
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                                color: isDark ? Colors.white : oxfordBlue,
+                              ),
+                            ),
+                            Text(
+                              LanguageController.isUrdu ? '$days دن اوورڈیو' : '$days days overdue',
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? lavender.withValues(alpha: 0.7)
+                                    : spaceCadet.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Text(
+                          'Rs. ${(customer['due'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                          textDirection: TextDirection.ltr,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                            color: Colors.redAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
-          if (index < totalCount - 1)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Divider(
-                height: 1,
-                color: Colors.red.withValues(alpha: 0.2),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPaymentStatusSection(Color primaryTextColor) {
-    return FutureBuilder<Map<String, int>>(
-      future: _analyticsService.getPaymentStatusDistribution(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox();
-        }
-
-        final status = snapshot.data ?? {};
-        final clear = status['clear'] ?? 0;
-        final partial = status['partial'] ?? 0;
-        final highDue = status['highDue'] ?? 0;
-        final total = clear + partial + highDue;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Payment Status',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryTextColor,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatusCard(
-                    label: 'Clear',
-                    count: clear,
-                    percentage: total > 0 ? (clear / total * 100) : 0,
-                    color: Colors.green,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildStatusCard(
-                    label: 'Partial',
-                    count: partial,
-                    percentage: total > 0 ? (partial / total * 100) : 0,
-                    color: Colors.orange,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: _buildStatusCard(
-                    label: 'High Due',
-                    count: highDue,
-                    percentage: total > 0 ? (highDue / total * 100) : 0,
-                    color: Colors.redAccent,
-                  ),
-                ),
-              ],
-            ),
-          ],
         );
       },
     );
   }
 
-  Widget _buildStatusCard({
-    required String label,
-    required int count,
-    required double percentage,
-    required Color color,
-  }) {
-    final theme = Theme.of(context);
-    final primaryTextColor = theme.colorScheme.onSurface;
-    final secondaryTextColor = theme.colorScheme.onSurfaceVariant;
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: color,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            count.toString(),
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: primaryTextColor,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '${percentage.toStringAsFixed(1)}%',
-            style: TextStyle(
-              fontSize: 11,
-              color: secondaryTextColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopCustomersSection(Color primaryTextColor) {
+  Widget _buildTopCustomersList(bool isDark) {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _analyticsService.getTopCustomers(limit: 5),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox();
+          return const Center(child: CircularProgressIndicator(color: yinMnBlue));
         }
 
         final topCustomers = snapshot.data ?? [];
@@ -438,217 +629,91 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           return const SizedBox();
         }
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Top Customers (by due)',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryTextColor,
-              ),
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: isDark ? spaceCadet.withValues(alpha: 0.6) : Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isDark ? jordyBlue.withValues(alpha: 0.2) : lavender,
             ),
-            const SizedBox(height: 12),
-            Column(
-              children: List.generate(
-                topCustomers.length,
-                (index) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: _buildTopCustomerTile(topCustomers[index], index + 1),
-                ),
-              ),
+          ),
+          child: Column(
+            children: List.generate(
+              topCustomers.length,
+              (index) {
+                final c = topCustomers[index];
+                return ListTile(
+                  dense: true,
+                  leading: CircleAvatar(
+                    backgroundColor: yinMnBlue,
+                    radius: 14,
+                    child: Text(
+                      '${index + 1}',
+                      style: const TextStyle(color: Colors.white, fontSize: 11),
+                    ),
+                  ),
+                  title: Text(
+                    c['name'] ?? (LanguageController.isUrdu ? 'نامعلوم' : 'Unknown'),
+                    textDirection: LanguageController.contentTextDirection,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : oxfordBlue,
+                    ),
+                  ),
+                  subtitle: Text(
+                    c['phone'] ?? (LanguageController.isUrdu ? 'کوئی فون نہیں' : 'No Phone'),
+                    textDirection: TextDirection.ltr,
+                    style: TextStyle(
+                      color: isDark ? lavender.withValues(alpha: 0.7) : spaceCadet.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  trailing: Text(
+                    'Rs. ${(c['due'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
+                    textDirection: TextDirection.ltr,
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : oxfordBlue,
+                    ),
+                  ),
+                );
+              },
             ),
-          ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildTopCustomerTile(Map<String, dynamic> customer, int rank) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final cardColor = theme.colorScheme.surface;
-    final borderColor = isDark ? Colors.white12 : Colors.grey.shade300;
-    final primaryTextColor = theme.colorScheme.onSurface;
-    final secondaryTextColor = theme.colorScheme.onSurfaceVariant;
-
+  Widget _buildListTileCard({
+    required String title,
+    required bool isDark,
+    required VoidCallback onTap,
+    IconData trailingIcon = Icons.chevron_right_rounded,
+  }) {
     return Container(
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: borderColor),
-        boxShadow: [
-          BoxShadow(
-            color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: isDark ? spaceCadet.withValues(alpha: 0.6) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? jordyBlue.withValues(alpha: 0.2) : lavender,
+        ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary,
-              shape: BoxShape.circle,
-            ),
-            child: Center(
-              child: Text(
-                rank.toString(),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-            ),
+      child: ListTile(
+        title: Text(
+          title,
+          textDirection: LanguageController.contentTextDirection,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isDark ? Colors.white : oxfordBlue,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  customer['name'] ?? 'Unknown',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: primaryTextColor,
-                  ),
-                ),
-                Text(
-                  customer['phone'] ?? 'N/A',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: secondaryTextColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Text(
-            'Rs. ${(customer['due'] as num?)?.toStringAsFixed(2) ?? '0.00'}',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
-              color: primaryTextColor,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMonthlySummarySection(Color primaryTextColor) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _analyticsService.getMonthlySummary(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox();
-        }
-
-        final monthly = snapshot.data ?? [];
-        if (monthly.isEmpty) {
-          return const SizedBox();
-        }
-
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-        final cardColor = theme.colorScheme.surface;
-        final borderColor = isDark ? Colors.white12 : Colors.grey.shade300;
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Monthly Summary (Last 12 months)',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: primaryTextColor,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: borderColor),
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: List.generate(
-                  monthly.length,
-                  (index) => _buildMonthlySummaryTile(
-                    monthly[index],
-                    index,
-                    monthly.length,
-                    borderColor,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildMonthlySummaryTile(
-    Map<String, dynamic> monthData,
-    int index,
-    int totalCount,
-    Color borderColor,
-  ) {
-    final month = monthData['month'] as String? ?? '';
-    final due = (monthData['due'] as num?)?.toDouble() ?? 0.0;
-    final theme = Theme.of(context);
-    final primaryTextColor = theme.colorScheme.onSurface;
-
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                month,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                  color: primaryTextColor,
-                ),
-              ),
-              Text(
-                'Rs. ${due.toStringAsFixed(2)}',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: primaryTextColor,
-                ),
-              ),
-            ],
-          ),
-          if (index < totalCount - 1)
-            Padding(
-              padding: const EdgeInsets.only(top: 12),
-              child: Divider(
-                height: 1,
-                color: borderColor,
-              ),
-            ),
-        ],
+        ),
+        trailing: Icon(
+          trailingIcon,
+          color: isDark ? jordyBlue : yinMnBlue,
+        ),
+        onTap: onTap,
       ),
     );
   }

@@ -2,17 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:barcode_widget/barcode_widget.dart';
 import 'package:digital_khata/models/invoice_model.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
 
 class InvoiceTicketCard extends StatelessWidget {
   final Invoice invoice;
+  final String? companyLogo; // Optional company logo path
 
   const InvoiceTicketCard({
     super.key,
     required this.invoice,
+    this.companyLogo,
   });
+
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
     final issueDateStr =
         DateFormat('dd MMM yyyy • HH:mm').format(invoice.createdAt);
 
@@ -20,64 +31,80 @@ class InvoiceTicketCard extends StatelessWidget {
       child: Container(
         width: 320,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? spaceCadet : Colors.white,
           borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isDark ? jordyBlue.withOpacity(0.15) : Colors.transparent,
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
+              color: isDark ? Colors.black.withOpacity(0.4) : Colors.black.withOpacity(0.08),
+              blurRadius: 24,
+              spreadRadius: 0,
+              offset: const Offset(0, 12),
             ),
           ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const SizedBox(height: 28),
+            const SizedBox(height: 32),
 
-            // Party Popper Icon
+            // === HEADER SECTION ===
+
+            // Party Popper Emoji / Celebration Icon
             const Text(
               '🎉',
-              style: TextStyle(fontSize: 40),
+              style: TextStyle(fontSize: 48),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 16),
 
-            // Header Title
-            const Text(
+            // Main Title
+            Text(
               'Thank you!',
               style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Colors.black,
+                fontSize: 24,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
+
+            // Subtitle
             Text(
-              'Invoice has been issued successfully',
+              'Your ticket has been issued\nsuccessfully',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey.shade500,
+                fontWeight: FontWeight.w400,
+                color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade500,
+                height: 1.5,
               ),
             ),
-            const SizedBox(height: 20),
 
-            // Dashed Divider Line
+            const SizedBox(height: 24),
+
+            // === DASHED DIVIDER ===
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: CustomPaint(
-                painter: DashedLinePainter(),
-                size: const Size(double.infinity, 1),
+                painter: DashedLinePainter(
+                  color: isDark ? jordyBlue.withOpacity(0.3) : Colors.grey.shade300,
+                ),
+                size: const Size(double.infinity, 1.5),
               ),
             ),
+
             const SizedBox(height: 24),
 
-            // Details Block (Invoice ID & Amount)
+            // === DETAILS SECTION ===
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Row 1: Invoice ID & Amount
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -85,21 +112,22 @@ class InvoiceTicketCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'INVOICE ID',
+                            'TICKET ID',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: Colors.grey.shade400,
-                              letterSpacing: 0.8,
+                              color: isDark ? jordyBlue.withOpacity(0.7) : Colors.grey.shade400,
+                              letterSpacing: 1.0,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Text(
                             invoice.invoiceNumber,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                            style: TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                              letterSpacing: -0.3,
                             ),
                           ),
                         ],
@@ -110,89 +138,121 @@ class InvoiceTicketCard extends StatelessWidget {
                           Text(
                             'Amount',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 10,
                               fontWeight: FontWeight.w700,
-                              color: Colors.grey.shade400,
+                              color: isDark ? jordyBlue.withOpacity(0.7) : Colors.grey.shade400,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: 6),
                           Text(
                             'Rs. ${invoice.total.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 16,
+                            style: TextStyle(
+                              fontSize: 18,
                               fontWeight: FontWeight.w900,
-                              color: Colors.black,
+                              color: isDark ? jordyBlue : const Color(0xFF1A1A1A),
+                              letterSpacing: -0.5,
                             ),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
 
-                  // Date & Time
-                  Text(
-                    'DATE & TIME',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey.shade400,
-                      letterSpacing: 0.8,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    issueDateStr,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 18),
 
-                  // Customer / Account Card
+                  // Row 2: Date & Time
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'DATE & TIME',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? jordyBlue.withOpacity(0.7) : Colors.grey.shade400,
+                          letterSpacing: 1.0,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        issueDateStr,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // === Customer Card ===
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF7F8FA),
-                      borderRadius: BorderRadius.circular(16),
+                      color: isDark ? oxfordBlue.withOpacity(0.6) : const Color(0xFFF8F9FB),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isDark ? jordyBlue.withOpacity(0.2) : Colors.grey.shade200,
+                        width: 0.8,
+                      ),
                     ),
                     child: Row(
                       children: [
+                        // Avatar Circle with Icon
                         Container(
-                          width: 36,
-                          height: 36,
-                          decoration: const BoxDecoration(
-                            color: Colors.black,
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: isDark ? jordyBlue : const Color(0xFF1A1A1A),
                             shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.person_outline_rounded,
-                            color: Colors.white,
+                            color: isDark ? oxfordBlue : Colors.white,
                             size: 20,
                           ),
                         ),
                         const SizedBox(width: 12),
+
+                        // Customer Info
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 invoice.customerName ?? 'Walk-in Customer',
-                                style: const TextStyle(
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
                                   fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black,
+                                  fontWeight: FontWeight.w700,
+                                  color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                                  letterSpacing: -0.2,
                                 ),
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: 3),
                               Text(
                                 'Status: ${invoice.status.name.toUpperCase()}',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey.shade600,
                                   fontWeight: FontWeight.w500,
+                                  color: isDark ? lavender.withOpacity(0.6) : Colors.grey.shade600,
+                                  letterSpacing: -0.1,
                                 ),
                               ),
                             ],
@@ -207,63 +267,100 @@ class InvoiceTicketCard extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Bottom Perforated Cutout Line
+            // === PERFORATED CUT LINE (Ticket Separator) ===
             Row(
               children: [
-                SizedBox(
+                // Left decorative notch
+                Container(
                   width: 12,
                   height: 24,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF7F8FA),
-                      borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(12),
-                        bottomRight: Radius.circular(12),
-                      ),
+                  decoration: BoxDecoration(
+                    color: isDark ? spaceCadet : Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topRight: Radius.circular(12),
+                      bottomRight: Radius.circular(12),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.shade200,
+                        blurRadius: 2,
+                        offset: const Offset(1, 0),
+                      ),
+                    ],
                   ),
                 ),
+
+                // Center dashed line
                 Expanded(
                   child: CustomPaint(
-                    painter: DashedLinePainter(),
-                    size: const Size(double.infinity, 1),
+                    painter: DashedLinePainter(
+                      color: isDark ? jordyBlue.withOpacity(0.3) : Colors.grey.shade300,
+                      dashWidth: 6,
+                      dashSpace: 4,
+                    ),
+                    size: const Size(double.infinity, 1.5),
                   ),
                 ),
-                SizedBox(
+
+                // Right decorative notch
+                Container(
                   width: 12,
                   height: 24,
-                  child: DecoratedBox(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF7F8FA),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        bottomLeft: Radius.circular(12),
-                      ),
+                  decoration: BoxDecoration(
+                    color: isDark ? spaceCadet : Colors.white,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      bottomLeft: Radius.circular(12),
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: isDark ? Colors.black.withOpacity(0.2) : Colors.grey.shade200,
+                        blurRadius: 2,
+                        offset: const Offset(-1, 0),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            // Barcode Section
+            // === BARCODE SECTION ===
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: BarcodeWidget(
-                barcode: Barcode.code128(),
-                data: invoice.invoiceNumber,
-                height: 54,
-                drawText: true,
-                style: const TextStyle(
-                  fontSize: 10,
-                  letterSpacing: 2,
-                  fontWeight: FontWeight.w600,
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Column(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: isDark ? oxfordBlue.withOpacity(0.5) : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isDark ? jordyBlue.withOpacity(0.2) : Colors.grey.shade200,
+                        width: 1,
+                      ),
+                    ),
+                    padding: const EdgeInsets.all(12),
+                    child: BarcodeWidget(
+                      barcode: Barcode.code128(),
+                      data: invoice.invoiceNumber,
+                      height: 56,
+                      color: isDark ? Colors.white : const Color(0xFF1A1A1A),
+                      backgroundColor: Colors.transparent,
+                      drawText: true,
+                      style: TextStyle(
+                        fontSize: 10,
+                        letterSpacing: 2.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? lavender : const Color(0xFF1A1A1A),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
 
-            const SizedBox(height: 28),
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -271,18 +368,30 @@ class InvoiceTicketCard extends StatelessWidget {
   }
 }
 
+// === CUSTOM PAINTER FOR DASHED LINES ===
 class DashedLinePainter extends CustomPainter {
+  final Color color;
+  final double dashWidth;
+  final double dashSpace;
+
+  DashedLinePainter({
+    this.color = Colors.grey,
+    this.dashWidth = 5,
+    this.dashSpace = 4,
+  });
+
   @override
   void paint(Canvas canvas, Size size) {
-    double dashWidth = 5, dashSpace = 4, startX = 0;
+    double startX = 0;
     final paint = Paint()
-      ..color = Colors.grey.shade300
-      ..strokeWidth = 1;
+      ..color = color
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
 
     while (startX < size.width) {
       canvas.drawLine(
-        Offset(startX, 0),
-        Offset(startX + dashWidth, 0),
+        Offset(startX, size.height / 2),
+        Offset(startX + dashWidth, size.height / 2),
         paint,
       );
       startX += dashWidth + dashSpace;
@@ -290,5 +399,8 @@ class DashedLinePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(DashedLinePainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.dashWidth != dashWidth ||
+      oldDelegate.dashSpace != dashSpace;
 }

@@ -1,9 +1,7 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-import 'package:digital_khata/components/my_button.dart';
-import 'package:digital_khata/components/my_text_field.dart';
 
 class LoginScreen extends StatefulWidget {
   final void Function()? onTap;
@@ -22,6 +20,14 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController emailcontroller = TextEditingController();
   final TextEditingController passwordcontroller = TextEditingController();
+  bool _isLoading = false;
+  bool _rememberMe = false;
+
+  // Consistent Palette Constants matching your blue theme
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
 
   @override
   void dispose() {
@@ -39,11 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
-    );
+    setState(() => _isLoading = true);
 
     try {
       final response = await Supabase.instance.client.auth.signInWithPassword(
@@ -52,20 +54,18 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
 
       if (response.session != null) {
-        // Navigate to main dashboard instantly
         context.go('/');
       }
     } on AuthException catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
       _showMessage(e.message);
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // Close loading dialog
       _showMessage('An unexpected error occurred: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -78,114 +78,375 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  Widget _buildGlassCheckbox({
+    required bool value,
+    required ValueChanged<bool?> onChanged,
+  }) {
+    return SizedBox(
+      width: 24,
+      height: 24,
+      child: AnimatedScale(
+        scale: 1.0,
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeInOut,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(6),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Checkbox(
+            value: value,
+            onChanged: onChanged,
+            fillColor: WidgetStateProperty.resolveWith((states) => Colors.white),
+            checkColor: oxfordBlue,
+            side: const BorderSide(color: Color(0xFFD1D5DB), width: 1.5),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(6),
+            ),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            visualDensity: VisualDensity.compact,
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      body: Center(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(25.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Image.asset(
-                  'assets/images/digital-khata-logo.png',
-                  height: 100,
-                  width: 100,
-                  errorBuilder: (context, error, stackTrace) => Icon(
-                    Icons.account_balance_wallet,
-                    size: 80,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Digital Khata',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Theme.of(context).colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 25),
-                MyTextField(
-                  hintText: "Email",
-                  obscureText: false,
-                  controller: emailcontroller,
-                ),
-                const SizedBox(height: 15),
-                MyTextField(
-                  hintText: "Password",
-                  obscureText: true,
-                  controller: passwordcontroller,
-                ),
-                const SizedBox(height: 15),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/auth_bg.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Top Back Header
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
                   children: [
-                    Text(
-                      'Forgot Password?',
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.primary,
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => context.go('/auth'),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(20),
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(color: Colors.white.withOpacity(0.25)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.chevron_left, color: Colors.white, size: 20),
+                                SizedBox(width: 4),
+                                Text(
+                                  'Back',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 25),
-                MyButton(text: "Login", onTap: loginUser),
-                const SizedBox(height: 20),
-                Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Don\'t have an account?',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.outline,
+              ),
+
+              // Main Glassmorphism Form Container stretching fully to bottom before footer
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(32),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                      child: Container(
+                        width: double.infinity,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(32),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.25),
+                            width: 1.2,
                           ),
-                        ),
-                        GestureDetector(
-                          onTap: widget.onTap,
-                          child: Text(
-                            ' Sign Up',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.primary,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 25,
+                              offset: const Offset(0, 10),
                             ),
+                          ],
+                        ),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text(
+                                'Welcome back',
+                                style: TextStyle(
+                                  fontSize: 26,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Email Field
+                              _buildTextField(
+                                label: 'Email',
+                                hint: 'Enter Email',
+                                controller: emailcontroller,
+                                keyboardType: TextInputType.emailAddress,
+                              ),
+                              const SizedBox(height: 14),
+
+                              // Password Field
+                              _buildTextField(
+                                label: 'Password',
+                                hint: 'Enter Password',
+                                controller: passwordcontroller,
+                                isObscure: true,
+                              ),
+                              const SizedBox(height: 10),
+
+                              // Remember me & Forgot Password Row
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      _buildGlassCheckbox(
+                                        value: _rememberMe,
+                                        onChanged: (val) {
+                                          setState(() => _rememberMe = val ?? false);
+                                        },
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Text(
+                                        'Remember me',
+                                        style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.85)),
+                                      ),
+                                    ],
+                                  ),
+                                  TextButton(
+                                    onPressed: () {},
+                                    child: const Text(
+                                      'Forgot password?',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Login Button
+                              SizedBox(
+                                width: double.infinity,
+                                height: 52,
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: oxfordBlue,
+                                    elevation: 0,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                  ),
+                                  onPressed: _isLoading ? null : loginUser,
+                                  child: _isLoading
+                                      ? const CircularProgressIndicator(color: oxfordBlue)
+                                      : const Text(
+                                          'Sign in',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Social Divider
+                              Row(
+                                children: [
+                                  Expanded(child: Divider(color: Colors.white.withOpacity(0.3))),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    child: Text(
+                                      'Sign in with',
+                                      style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7)),
+                                    ),
+                                  ),
+                                  Expanded(child: Divider(color: Colors.white.withOpacity(0.3))),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Social Icons
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  _buildSocialIcon(Icons.facebook, const Color(0xFF1877F2)),
+                                  const SizedBox(width: 16),
+                                  _buildSocialIcon(Icons.g_mobiledata, Colors.redAccent, size: 32),
+                                  const SizedBox(width: 16),
+                                  _buildSocialIcon(Icons.apple, Colors.white, size: 26),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+
+                              // Navigation toggles with proper spacing
+                              Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Don\'t have an account? ',
+                                        style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.85)),
+                                      ),
+                                      GestureDetector(
+                                        onTap: widget.onTap,
+                                        child: const Text(
+                                          'Sign up',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Text(
+                                        'Login as Customer? ',
+                                        style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.85)),
+                                      ),
+                                      GestureDetector(
+                                        onTap: widget.onCustomerTap,
+                                        child: const Text(
+                                          'Sign In',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: jordyBlue,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Login as Customer',
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.outline,
-                          ),
-                        ),
-                        GestureDetector(
-                          onTap: widget.onCustomerTap,
-                          child: Text(
-                            ' Sign In',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Theme.of(context).colorScheme.secondary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
+                  ),
                 ),
-              ],
+              ),
+
+              // Footer branding visible at the bottom
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8, top: 4),
+                child: Text(
+                  'Powered by zenvyrolabs',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withOpacity(0.75),
+                    letterSpacing: 0.8,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    bool isObscure = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white.withOpacity(0.85)),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          obscureText: isObscure,
+          keyboardType: keyboardType,
+          style: const TextStyle(fontSize: 14, color: Colors.white),
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 13),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            filled: true,
+            fillColor: Colors.white.withOpacity(0.08),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.white, width: 1.5),
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildSocialIcon(IconData icon, Color color, {double size = 22}) {
+    return Container(
+      width: 44,
+      height: 44,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withOpacity(0.08),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Center(
+        child: Icon(icon, color: color, size: size),
       ),
     );
   }

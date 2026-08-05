@@ -9,10 +9,10 @@ class ToggleLoginSignup extends StatefulWidget {
   const ToggleLoginSignup({super.key});
 
   @override
-  State<ToggleLoginSignup> createState() => _ToggleLoginSignup();
+  State<ToggleLoginSignup> createState() => _ToggleLoginSignupState();
 }
 
-class _ToggleLoginSignup extends State<ToggleLoginSignup> {
+class _ToggleLoginSignupState extends State<ToggleLoginSignup> {
   AuthPage currentPage = AuthPage.login;
 
   void switchPage(AuthPage page) {

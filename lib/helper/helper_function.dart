@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../routes/app_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Formats standard double monetary values without dividing by 100.
@@ -17,17 +18,20 @@ extension CurrencyFormatting on double {
 /// Logout helper adapted for GoRouter and Supabase Auth
 Future<void> logout(BuildContext context) async {
   try {
-    // 1. Sign out the active Supabase session
+    AppRouter.isLoggingOut = true;
+
     await Supabase.instance.client.auth.signOut();
 
-    if (context.mounted) {
-      // 2. Navigate back to login using GoRouter
-      context.go('/login');
-    }
+    // No context.go() here.
+    // The auth listener will trigger the router redirect automatically.
   } catch (e) {
+    AppRouter.isLoggingOut = false;
+
     if (context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error logging out: $e')),
+        SnackBar(
+          content: Text('Error logging out: $e'),
+        ),
       );
     }
   }

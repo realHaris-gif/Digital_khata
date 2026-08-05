@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 import 'package:digital_khata/l10n/app_localizations.dart';
 import 'package:digital_khata/models/product_model.dart';
 import 'package:digital_khata/models/stock_movement_model.dart';
@@ -28,6 +30,13 @@ final productMovementsProvider =
 class ProductDetailScreen extends ConsumerWidget {
   final String productId;
 
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
+
   const ProductDetailScreen({Key? key, required this.productId})
       : super(key: key);
 
@@ -46,10 +55,12 @@ class ProductDetailScreen extends ConsumerWidget {
     final refController = TextEditingController();
     final notesController = TextEditingController();
     final formKey = GlobalKey<FormState>();
+    final isDark = ThemeController.isDarkMode;
 
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: isDark ? spaceCadet : Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -66,38 +77,45 @@ class ProductDetailScreen extends ConsumerWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
+              textDirection: LanguageController.contentTextDirection,
               children: [
                 Text(
-                  'Record ${type.displayName}',
-                  style: const TextStyle(
+                  LanguageController.isUrdu ? '${type.displayName} درج کریں' : 'Record ${type.displayName}',
+                  textDirection: LanguageController.contentTextDirection,
+                  style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : oxfordBlue,
                   ),
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
                   controller: qtyController,
+                  style: TextStyle(color: isDark ? Colors.white : oxfordBlue),
+                  textDirection: TextDirection.ltr,
                   keyboardType:
                       const TextInputType.numberWithOptions(decimal: true),
                   decoration: InputDecoration(
                     labelText: type == StockMovementType.adjustment
-                        ? 'New Absolute Quantity'
-                        : 'Quantity (${product.unit})',
+                        ? (LanguageController.isUrdu ? 'نیا مطلق مقدار' : 'New Absolute Quantity')
+                        : (LanguageController.isUrdu ? 'مقدار (${product.unit})' : 'Quantity (${product.unit})'),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   validator: (val) {
-                    if (val == null || val.trim().isEmpty) return 'Enter quantity';
-                    if (double.tryParse(val) == null) return 'Enter valid number';
+                    if (val == null || val.trim().isEmpty) return LanguageController.isUrdu ? 'مقدار درج کریں' : 'Enter quantity';
+                    if (double.tryParse(val) == null) return LanguageController.isUrdu ? 'درست نمبر درج کریں' : 'Enter valid number';
                     return null;
                   },
                 ),
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: refController,
+                  style: TextStyle(color: isDark ? Colors.white : oxfordBlue),
+                  textDirection: LanguageController.contentTextDirection,
                   decoration: InputDecoration(
-                    labelText: 'Reference / Invoice # (Optional)',
+                    labelText: LanguageController.isUrdu ? 'حوالہ / انوائس # (اختیاری)' : 'Reference / Invoice # (Optional)',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -106,8 +124,10 @@ class ProductDetailScreen extends ConsumerWidget {
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: notesController,
+                  style: TextStyle(color: isDark ? Colors.white : oxfordBlue),
+                  textDirection: LanguageController.contentTextDirection,
                   decoration: InputDecoration(
-                    labelText: 'Notes / Reason (Optional)',
+                    labelText: LanguageController.isUrdu ? 'نوٹس / وجہ (اختیاری)' : 'Notes / Reason (Optional)',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -117,7 +137,7 @@ class ProductDetailScreen extends ConsumerWidget {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    backgroundColor: Colors.teal,
+                    backgroundColor: yinMnBlue,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -144,9 +164,10 @@ class ProductDetailScreen extends ConsumerWidget {
                     if (ctx.mounted) Navigator.pop(ctx);
                     _refresh(ref);
                   },
-                  child: const Text(
-                    'Save Movement',
-                    style: TextStyle(
+                  child: Text(
+                    LanguageController.isUrdu ? 'نقل و حرکت محفوظ کریں' : 'Save Movement',
+                    textDirection: LanguageController.contentTextDirection,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.bold,
                     ),
@@ -164,297 +185,401 @@ class ProductDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppLocalizations.of(context)!;
     final productAsync = ref.watch(productDetailProvider(productId));
+    final isDark = ThemeController.isDarkMode;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Product Details'),
-        centerTitle: true,
-        actions: [
-          PopupMenuButton<String>(
-            onSelected: (val) async {
-              final userId =
-                  Supabase.instance.client.auth.currentUser?.id ?? '';
-              final repo = ref.read(inventoryRepoProvider);
-
-              if (val == 'duplicate') {
-                await repo.duplicateProduct(productId, userId);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Product copied successfully!')),
-                  );
-                  context.pop(true);
-                }
-              } else if (val == 'delete') {
-                await repo.deleteProduct(productId);
-                if (context.mounted) context.pop(true);
-              }
-            },
-            itemBuilder: (ctx) => [
-              const PopupMenuItem(
-                value: 'duplicate',
-                child: Row(
-                  children: [
-                    Icon(Icons.copy, color: Colors.blue),
-                    SizedBox(width: 8),
-                    Text('Duplicate Product'),
-                  ],
-                ),
-              ),
-              const PopupMenuItem(
-                value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete, color: Colors.red),
-                    SizedBox(width: 8),
-                    Text('Delete Product'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: yinMnBlue,
+            ),
       ),
-      body: productAsync.when(
-        data: (product) {
-          if (product == null) {
-            return const Center(child: Text('Product not found.'));
-          }
+      child: Scaffold(
+        backgroundColor: isDark ? oxfordBlue : lavender.withValues(alpha: 0.3),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          title: Text(
+            LanguageController.isUrdu ? 'پروڈکٹ کی تفصیلات' : 'Product Details',
+            textDirection: LanguageController.contentTextDirection,
+            style: TextStyle(
+              color: isDark ? Colors.white : oxfordBlue,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
+          actions: [
+            PopupMenuButton<String>(
+              color: isDark ? spaceCadet : Colors.white,
+              onSelected: (val) async {
+                final userId =
+                    Supabase.instance.client.auth.currentUser?.id ?? '';
+                final repo = ref.read(inventoryRepoProvider);
 
-          return RefreshIndicator(
-            onRefresh: () async => _refresh(ref),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title Header Card
-                  Card(
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  product.name,
-                                  style: const TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
+                if (val == 'duplicate') {
+                  await repo.duplicateProduct(productId, userId);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          LanguageController.isUrdu ? 'پروڈکٹ کامیابی کے ساتھ کاپی ہو گیا!' : 'Product copied successfully!',
+                          textDirection: LanguageController.contentTextDirection,
+                        ),
+                      ),
+                    );
+                    context.pop(true);
+                  }
+                } else if (val == 'delete') {
+                  await repo.deleteProduct(productId);
+                  if (context.mounted) context.pop(true);
+                }
+              },
+              itemBuilder: (ctx) => [
+                PopupMenuItem(
+                  value: 'duplicate',
+                  child: Row(
+                    textDirection: LanguageController.contentTextDirection,
+                    children: [
+                      Icon(Icons.copy, color: isDark ? jordyBlue : yinMnBlue),
+                      const SizedBox(width: 8),
+                      Text(
+                        LanguageController.isUrdu ? 'پروڈکٹ کی نقل بنائیں' : 'Duplicate Product',
+                        textDirection: LanguageController.contentTextDirection,
+                        style: TextStyle(color: isDark ? Colors.white : oxfordBlue),
+                      ),
+                    ],
+                  ),
+                ),
+                PopupMenuItem(
+                  value: 'delete',
+                  child: Row(
+                    textDirection: LanguageController.contentTextDirection,
+                    children: [
+                      const Icon(Icons.delete, color: Colors.redAccent),
+                      const SizedBox(width: 8),
+                      Text(
+                        LanguageController.isUrdu ? 'پروڈکٹ حذف کریں' : 'Delete Product',
+                        textDirection: LanguageController.contentTextDirection,
+                        style: const TextStyle(color: Colors.redAccent),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+        body: productAsync.when(
+          data: (product) {
+            if (product == null) {
+              return Center(
+                child: Text(
+                  LanguageController.isUrdu ? 'پروڈکٹ نہیں ملا۔' : 'Product not found.',
+                  textDirection: LanguageController.contentTextDirection,
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              color: yinMnBlue,
+              onRefresh: () async => _refresh(ref),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  textDirection: LanguageController.contentTextDirection,
+                  children: [
+                    // Title Header Card
+                    Card(
+                      elevation: 0,
+                      color: isDark ? spaceCadet.withValues(alpha: 0.6) : Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                        side: BorderSide(
+                          color: isDark ? jordyBlue.withValues(alpha: 0.2) : lavender,
+                        ),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          textDirection: LanguageController.contentTextDirection,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              textDirection: LanguageController.contentTextDirection,
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    product.name,
+                                    textDirection: LanguageController.contentTextDirection,
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.white : oxfordBlue,
+                                    ),
                                   ),
                                 ),
-                              ),
-                              StockBadge(product: product),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'SKU: ${product.sku ?? "N/A"} • Barcode: ${product.barcode ?? "N/A"}',
-                            style: const TextStyle(
-                                fontSize: 13, color: Colors.grey),
-                          ),
-                          if (product.description != null &&
-                              product.description!.isNotEmpty) ...[
+                                StockBadge(product: product),
+                              ],
+                            ),
                             const SizedBox(height: 8),
                             Text(
-                              product.description!,
-                              style: const TextStyle(fontSize: 14),
+                              'SKU: ${product.sku ?? "N/A"} • Barcode: ${product.barcode ?? "N/A"}',
+                              textDirection: TextDirection.ltr,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: isDark ? lavender.withValues(alpha: 0.7) : spaceCadet.withValues(alpha: 0.6),
+                              ),
                             ),
+                            if (product.description != null &&
+                                product.description!.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                product.description!,
+                                textDirection: LanguageController.contentTextDirection,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: isDark ? lavender : spaceCadet,
+                                ),
+                              ),
+                            ],
                           ],
-                        ],
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 16),
+                    const SizedBox(height: 16),
 
-                  // Stock & Price Summary Grid
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InventorySummaryCard(
-                          title: 'Current Stock',
-                          value:
-                              '${product.currentStock.toStringAsFixed(0)} ${product.unit}',
-                          icon: Icons.inventory_outlined,
-                          color: Colors.teal,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: InventorySummaryCard(
-                          title: 'Selling Price',
-                          value:
-                              'Rs. ${product.sellingPrice.toStringAsFixed(2)}',
-                          icon: Icons.sell_outlined,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: InventorySummaryCard(
-                          title: 'Purchase Price',
-                          value:
-                              'Rs. ${product.purchasePrice.toStringAsFixed(2)}',
-                          icon: Icons.shopping_bag_outlined,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: InventorySummaryCard(
-                          title: 'Total Stock Value',
-                          value:
-                              'Rs. ${product.totalStockValue.toStringAsFixed(0)}',
-                          icon: Icons.account_balance_wallet_outlined,
-                          color: Colors.purple,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Stock Actions Buttons Grid
-                  const Text(
-                    'Quick Stock Adjustments',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                    // Stock & Price Summary Grid
+                    Row(
+                      textDirection: LanguageController.contentTextDirection,
+                      children: [
+                        Expanded(
+                          child: InventorySummaryCard(
+                            title: LanguageController.isUrdu ? 'موجودہ اسٹاک' : 'Current Stock',
+                            value:
+                                '${product.currentStock.toStringAsFixed(0)} ${product.unit}',
+                            icon: Icons.inventory_outlined,
+                            color: isDark ? jordyBlue : yinMnBlue,
                           ),
-                          onPressed: () => _showMovementModal(
-                            context,
-                            ref,
-                            product,
-                            StockMovementType.inStock,
-                          ),
-                          icon: const Icon(Icons.add, color: Colors.white),
-                          label: const Text('Stock In',
-                              style: TextStyle(color: Colors.white)),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: InventorySummaryCard(
+                            title: LanguageController.isUrdu ? 'فروخت کی قیمت' : 'Selling Price',
+                            value:
+                                'Rs. ${product.sellingPrice.toStringAsFixed(2)}',
+                            icon: Icons.sell_outlined,
+                            color: isDark ? jordyBlue : yinMnBlue,
                           ),
-                          onPressed: () => _showMovementModal(
-                            context,
-                            ref,
-                            product,
-                            StockMovementType.outStock,
-                          ),
-                          icon: const Icon(Icons.remove, color: Colors.white),
-                          label: const Text('Stock Out',
-                              style: TextStyle(color: Colors.white)),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showMovementModal(
-                            context,
-                            ref,
-                            product,
-                            StockMovementType.adjustment,
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      textDirection: LanguageController.contentTextDirection,
+                      children: [
+                        Expanded(
+                          child: InventorySummaryCard(
+                            title: LanguageController.isUrdu ? 'خریداری کی قیمت' : 'Purchase Price',
+                            value:
+                                'Rs. ${product.purchasePrice.toStringAsFixed(2)}',
+                            icon: Icons.shopping_bag_outlined,
+                            color: isDark ? jordyBlue : yinMnBlue,
                           ),
-                          icon: const Icon(Icons.tune),
-                          label: const Text('Adjust'),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: OutlinedButton.icon(
-                          onPressed: () => _showMovementModal(
-                            context,
-                            ref,
-                            product,
-                            StockMovementType.returnStock,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: InventorySummaryCard(
+                            title: LanguageController.isUrdu ? 'کل اسٹاک ویلیو' : 'Total Stock Value',
+                            value:
+                                'Rs. ${product.totalStockValue.toStringAsFixed(0)}',
+                            icon: Icons.account_balance_wallet_outlined,
+                            color: isDark ? jordyBlue : yinMnBlue,
                           ),
-                          icon: const Icon(Icons.replay),
-                          label: const Text('Return'),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 20),
 
-                  // Stock Movements History
-                  const Text(
-                    'Stock Activity History',
-                    style: TextStyle(
-                        fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-
-                  ref.watch(productMovementsProvider(productId)).when(
-                        data: (movements) {
-                          if (movements.isEmpty) {
-                            return const Padding(
-                              padding: EdgeInsets.all(16.0),
-                              child: Text(
-                                'No stock changes recorded yet.',
-                                style: TextStyle(color: Colors.grey),
+                    // Stock Actions Buttons Grid
+                    Text(
+                      LanguageController.isUrdu ? 'فوری اسٹاک ایڈجسٹمنٹ' : 'Quick Stock Adjustments',
+                      textDirection: LanguageController.contentTextDirection,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? jordyBlue : oxfordBlue,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      textDirection: LanguageController.contentTextDirection,
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green.shade600,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            );
-                          }
+                            ),
+                            onPressed: () => _showMovementModal(
+                              context,
+                              ref,
+                              product,
+                              StockMovementType.inStock,
+                            ),
+                            icon: const Icon(Icons.add, color: Colors.white),
+                            label: Text(
+                              LanguageController.isUrdu ? 'اسٹاک ان' : 'Stock In',
+                              textDirection: LanguageController.contentTextDirection,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.redAccent,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: () => _showMovementModal(
+                              context,
+                              ref,
+                              product,
+                              StockMovementType.outStock,
+                            ),
+                            icon: const Icon(Icons.remove, color: Colors.white),
+                            label: Text(
+                              LanguageController.isUrdu ? 'اسٹاک آؤٹ' : 'Stock Out',
+                              textDirection: LanguageController.contentTextDirection,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      textDirection: LanguageController.contentTextDirection,
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: isDark ? jordyBlue.withValues(alpha: 0.4) : lavender,
+                              ),
+                            ),
+                            onPressed: () => _showMovementModal(
+                              context,
+                              ref,
+                              product,
+                              StockMovementType.adjustment,
+                            ),
+                            icon: Icon(Icons.tune, color: isDark ? jordyBlue : yinMnBlue),
+                            label: Text(
+                              LanguageController.isUrdu ? 'ایڈجسٹ' : 'Adjust',
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(color: isDark ? Colors.white : oxfordBlue),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              side: BorderSide(
+                                color: isDark ? jordyBlue.withValues(alpha: 0.4) : lavender,
+                              ),
+                            ),
+                            onPressed: () => _showMovementModal(
+                              context,
+                              ref,
+                              product,
+                              StockMovementType.returnStock,
+                            ),
+                            icon: Icon(Icons.replay, color: isDark ? jordyBlue : yinMnBlue),
+                            label: Text(
+                              LanguageController.isUrdu ? 'واپسی' : 'Return',
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(color: isDark ? Colors.white : oxfordBlue),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
 
-                          return ListView.separated(
-                            shrinkWrap: true,
-                            physics: const NeverScrollableScrollPhysics(),
-                            itemCount: movements.length,
-                            separatorBuilder: (_, __) =>
-                                const Divider(height: 1),
-                            itemBuilder: (context, index) {
-                              return MovementTile(
-                                movement: movements[index],
-                              );
-                            },
-                          );
-                        },
-                        loading: () =>
-                            const Center(child: CircularProgressIndicator()),
-                        error: (e, _) => Text('${l10n.error}: $e'),
+                    const SizedBox(height: 24),
+
+                    // Stock Movements History
+                    Text(
+                      LanguageController.isUrdu ? 'اسٹاک سرگرمی کی ہسٹری' : 'Stock Activity History',
+                      textDirection: LanguageController.contentTextDirection,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? jordyBlue : oxfordBlue,
                       ),
-                ],
+                    ),
+                    const SizedBox(height: 8),
+
+                    ref.watch(productMovementsProvider(productId)).when(
+                          data: (movements) {
+                            if (movements.isEmpty) {
+                              return Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Text(
+                                  LanguageController.isUrdu ? 'ابھی تک کوئی اسٹاک تبدیلی درج نہیں کی گئی۔' : 'No stock changes recorded yet.',
+                                  textDirection: LanguageController.contentTextDirection,
+                                  style: TextStyle(
+                                    color: isDark ? lavender.withValues(alpha: 0.6) : spaceCadet.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: movements.length,
+                              separatorBuilder: (_, __) => Divider(
+                                height: 1,
+                                color: isDark ? jordyBlue.withValues(alpha: 0.2) : lavender,
+                              ),
+                              itemBuilder: (context, index) {
+                                return MovementTile(
+                                  movement: movements[index],
+                                );
+                              },
+                            );
+                          },
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator(color: yinMnBlue)),
+                          error: (e, _) => Text(
+                            '${l10n.error}: $e',
+                            textDirection: LanguageController.contentTextDirection,
+                          ),
+                        ),
+                  ],
+                ),
               ),
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator(color: yinMnBlue)),
+          error: (e, _) => Center(
+            child: Text(
+              '${l10n.error}: $e',
+              textDirection: LanguageController.contentTextDirection,
             ),
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('${l10n.error}: $e')),
+          ),
+        ),
       ),
     );
   }

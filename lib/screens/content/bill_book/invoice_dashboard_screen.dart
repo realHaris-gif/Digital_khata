@@ -5,16 +5,16 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'package:digital_khata/controller/theme_controller.dart';
+import 'package:digital_khata/controller/language_controller.dart';
 import 'package:digital_khata/models/invoice_model.dart';
 import 'package:digital_khata/services/invoice_service.dart';
+import 'package:digital_khata/theme/app_theme.dart';
 import 'package:digital_khata/widgets/bill_book/create_invoice_fab.dart';
 import 'package:digital_khata/widgets/bill_book/invoice_widgets.dart';
 
 final invoiceRepoProvider = Provider<InvoiceRepository>((ref) {
   return InvoiceRepository(Supabase.instance.client);
 });
-
-const emerald = Color(0xFF059669);
 
 final dashboardInvoicesProvider = FutureProvider<List<Invoice>>((ref) async {
   final repo = ref.watch(invoiceRepoProvider);
@@ -42,202 +42,224 @@ class _InvoiceDashboardScreenState
     final isDark = ThemeController.isDarkMode;
     final invoicesAsync = ref.watch(dashboardInvoicesProvider);
 
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF7F8FA),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          'Bill Book',
-          style: TextStyle(
-            color: isDark ? Colors.white : Colors.black,
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
+    return RepaintBoundary(
+      child: Scaffold(
+        backgroundColor: isDark ? AppColors.darkBackground : AppColors.surface1,
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: Icon(Icons.chevron_left,
+                size: 28, color: isDark ? AppColors.jordyBlue : AppColors.oxfordBlue),
+            onPressed: () {
+              if (context.canPop()) {
+                context.pop();
+              } else {
+                context.go('/');
+              }
+            },
           ),
+          title: Text(
+            LanguageController.isUrdu ? 'بل بک' : 'Bill Book',
+            textDirection: LanguageController.contentTextDirection,
+            style: TextStyle(
+              color: isDark ? Colors.white : AppColors.oxfordBlue,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          actions: [
+            IconButton(
+              icon: Icon(Icons.refresh_rounded, color: isDark ? AppColors.jordyBlue : AppColors.spaceCadet),
+              onPressed: _refresh,
+            ),
+          ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.refresh_rounded, color: isDark ? Colors.white : Colors.black),
-            onPressed: _refresh,
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          invoicesAsync.when(
-            data: (invoices) {
-              // Financial Metrics
-              final totalSales =
-                  invoices.fold(0.0, (sum, inv) => sum + inv.total);
-              final totalCollected =
-                  invoices.fold(0.0, (sum, inv) => sum + inv.totalPaid);
-              final totalPending =
-                  invoices.fold(0.0, (sum, inv) => sum + inv.remainingBalance);
+        body: Stack(
+          children: [
+            invoicesAsync.when(
+              data: (invoices) {
+                // Financial Metrics
+                final totalSales =
+                    invoices.fold(0.0, (sum, inv) => sum + inv.total);
+                final totalCollected =
+                    invoices.fold(0.0, (sum, inv) => sum + inv.totalPaid);
+                final totalPending =
+                    invoices.fold(0.0, (sum, inv) => sum + inv.remainingBalance);
 
-              final recentInvoices = invoices.take(5).toList();
+                final recentInvoices = invoices.take(5).toList();
 
-              return RefreshIndicator(
-                onRefresh: () async => _refresh(),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(
-                    left: 16,
-                    right: 16,
-                    top: 8,
-                    bottom: 120,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Overview Metric Cards Grid
-                      GridView.count(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 12,
-                        mainAxisSpacing: 12,
-                        childAspectRatio: 1.35,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: [
-                          _buildMetricCard(
-                            context: context,
-                            title: 'Total Sales',
-                            amount: 'Rs. ${totalSales.toStringAsFixed(2)}',
-                            icon: Icons.receipt_long_rounded,
-                            color: Colors.blue,
-                            isDark: isDark,
-                          ),
-                          _buildMetricCard(
-                            context: context,
-                            title: 'Collected',
-                            amount: 'Rs. ${totalCollected.toStringAsFixed(2)}',
-                            icon: Icons.verified_rounded,
-                            color: emerald,
-                            isDark: isDark,
-                          ),
-                          _buildMetricCard(
-                            context: context,
-                            title: 'Pending Dues',
-                            amount: 'Rs. ${totalPending.toStringAsFixed(2)}',
-                            icon: Icons.pending_actions_rounded,
-                            color: Colors.amber.shade700,
-                            isDark: isDark,
-                          ),
-                          _buildMetricCard(
-                            context: context,
-                            title: 'Invoices Count',
-                            amount: '${invoices.length}',
-                            icon: Icons.description_outlined,
-                            color: Colors.purple,
-                            isDark: isDark,
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // Quick Action Bar
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: isDark ? Colors.white12 : Colors.grey.shade200,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                return RefreshIndicator(
+                  color: AppColors.yinMnBlue,
+                  onRefresh: () async => _refresh(),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(
+                      left: AppSpacing.lg,
+                      right: AppSpacing.lg,
+                      top: AppSpacing.sm,
+                      bottom: 120,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Overview Metric Cards Grid
+                        GridView.count(
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.35,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
                           children: [
-                            _buildQuickActionButton(
+                            _buildMetricCard(
                               context: context,
-                              icon: Icons.add_circle_outline_rounded,
-                              label: 'New Invoice',
+                              title: LanguageController.isUrdu ? 'کل فروخت' : 'Total Sales',
+                              amount: 'Rs. ${totalSales.toStringAsFixed(2)}',
+                              icon: Icons.receipt_long_rounded,
+                              color: AppColors.jordyBlue,
                               isDark: isDark,
-                              onTap: () async {
-                                final res = await context.push('/bill-book/create');
-                                if (res == true) _refresh();
-                              },
                             ),
-                            _buildQuickActionButton(
+                            _buildMetricCard(
                               context: context,
-                              icon: Icons.list_alt_rounded,
-                              label: 'All Invoices',
+                              title: LanguageController.isUrdu ? 'وصول شدہ' : 'Collected',
+                              amount: 'Rs. ${totalCollected.toStringAsFixed(2)}',
+                              icon: Icons.verified_rounded,
+                              color: Colors.green.shade400,
                               isDark: isDark,
-                              onTap: () => context.push('/bill-book/invoices'),
                             ),
-                            _buildQuickActionButton(
+                            _buildMetricCard(
                               context: context,
-                              icon: Icons.analytics_outlined,
-                              label: 'Analytics',
+                              title: LanguageController.isUrdu ? 'بقایا واجبات' : 'Pending Dues',
+                              amount: 'Rs. ${totalPending.toStringAsFixed(2)}',
+                              icon: Icons.pending_actions_rounded,
+                              color: AppColors.warning,
                               isDark: isDark,
-                              onTap: () => context.push('/bill-book/analytics'),
+                            ),
+                            _buildMetricCard(
+                              context: context,
+                              title: LanguageController.isUrdu ? 'انوائسز کی تعداد' : 'Invoices Count',
+                              amount: '${invoices.length}',
+                              icon: Icons.description_outlined,
+                              color: AppColors.lavender,
+                              isDark: isDark,
                             ),
                           ],
                         ),
-                      ),
 
-                      const SizedBox(height: 24),
+                        const SizedBox(height: AppSpacing.xl),
 
-                      // Recent Activity Header
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Recent Invoices',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: isDark ? Colors.white : Colors.black,
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () => context.push('/bill-book/invoices'),
-                            child: const Text('View All'),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-
-                      if (recentInvoices.isEmpty)
+                        // Quick Action Bar
                         Container(
-                          padding: const EdgeInsets.all(32),
-                          alignment: Alignment.center,
-                          child: Text(
-                            'No invoices created yet.',
-                            style: TextStyle(
-                              color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                          padding: const EdgeInsets.all(AppSpacing.lg),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.darkSurface : Colors.white,
+                            borderRadius: BorderRadius.circular(AppRadius.xxl),
+                            border: Border.all(
+                              color: isDark ? AppColors.darkBorder.withValues(alpha: 0.2) : AppColors.borderLight,
                             ),
                           ),
-                        )
-                      else
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: recentInvoices.length,
-                          itemBuilder: (context, index) {
-                            return _buildDashboardInvoiceCard(
-                              context,
-                              recentInvoices[index],
-                              isDark,
-                            );
-                          },
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildQuickActionButton(
+                                context: context,
+                                icon: Icons.add_circle_outline_rounded,
+                                label: LanguageController.isUrdu ? 'نئی انوائس' : 'New Invoice',
+                                isDark: isDark,
+                                onTap: () async {
+                                  final res = await context.push('/bill-book/create');
+                                  if (res == true) _refresh();
+                                },
+                              ),
+                              _buildQuickActionButton(
+                                context: context,
+                                icon: Icons.list_alt_rounded,
+                                label: LanguageController.isUrdu ? 'تمام انوائسز' : 'All Invoices',
+                                isDark: isDark,
+                                onTap: () => context.push('/bill-book/invoices'),
+                              ),
+                              _buildQuickActionButton(
+                                context: context,
+                                icon: Icons.analytics_outlined,
+                                label: LanguageController.isUrdu ? 'تجزیات' : 'Analytics',
+                                isDark: isDark,
+                                onTap: () => context.push('/bill-book/analytics'),
+                              ),
+                            ],
+                          ),
                         ),
-                    ],
+
+                        const SizedBox(height: AppSpacing.xxl),
+
+                        // Recent Activity Header
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              LanguageController.isUrdu ? 'حالیہ انوائسز' : 'Recent Invoices',
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? AppColors.jordyBlue : AppColors.oxfordBlue,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () => context.push('/bill-book/invoices'),
+                              child: Text(
+                                LanguageController.isUrdu ? 'سب دیکھیں' : 'View All',
+                                textDirection: LanguageController.contentTextDirection,
+                                style: TextStyle(color: isDark ? AppColors.jordyBlue : AppColors.yinMnBlue),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: AppSpacing.sm),
+
+                        if (recentInvoices.isEmpty)
+                          Container(
+                            padding: const EdgeInsets.all(32),
+                            alignment: Alignment.center,
+                            child: Text(
+                              LanguageController.isUrdu ? 'ابھی تک کوئی انوائس نہیں بنائی گئی۔' : 'No invoices created yet.',
+                              textDirection: LanguageController.contentTextDirection,
+                              style: TextStyle(
+                                color: isDark ? AppColors.lavender.withValues(alpha: 0.6) : AppColors.spaceCadet.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          )
+                        else
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: recentInvoices.length,
+                            itemBuilder: (context, index) {
+                              return _buildDashboardInvoiceCard(
+                                context,
+                                recentInvoices[index],
+                                isDark,
+                              );
+                            },
+                          ),
+                      ],
+                    ),
                   ),
+                );
+              },
+              loading: () => const Center(child: CircularProgressIndicator(color: AppColors.yinMnBlue)),
+              error: (err, stack) => Center(
+                child: Text(
+                  LanguageController.isUrdu ? 'ڈیش بورڈ لوڈ کرنے میں ناکام: $err' : 'Failed to load dashboard: $err',
+                  textDirection: LanguageController.contentTextDirection,
+                  style: TextStyle(color: isDark ? Colors.white : AppColors.oxfordBlue),
                 ),
-              );
-            },
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(
-              child: Text(
-                'Failed to load dashboard: $err',
-                style: TextStyle(color: isDark ? Colors.white : Colors.black),
               ),
             ),
-          ),
 
-          // Reusable Persistent Create Invoice Floating Button
-          const CreateInvoiceFAB(),
-        ],
+            // Reusable Persistent Create Invoice Floating Button
+            const CreateInvoiceFAB(),
+          ],
+        ),
       ),
     );
   }
@@ -253,10 +275,10 @@ class _InvoiceDashboardScreenState
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: isDark ? AppColors.darkSurface : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
         border: Border.all(
-          color: isDark ? Colors.white12 : Colors.grey.shade200,
+          color: isDark ? AppColors.darkBorder.withValues(alpha: 0.2) : AppColors.borderLight,
         ),
       ),
       child: Column(
@@ -268,9 +290,10 @@ class _InvoiceDashboardScreenState
             children: [
               Text(
                 title,
+                textDirection: LanguageController.contentTextDirection,
                 style: TextStyle(
                   fontSize: 12,
-                  color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                  color: isDark ? AppColors.lavender : AppColors.spaceCadet.withValues(alpha: 0.7),
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -284,7 +307,7 @@ class _InvoiceDashboardScreenState
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: isDark ? Colors.white : Colors.black,
+                color: isDark ? Colors.white : AppColors.oxfordBlue,
               ),
             ),
           ),
@@ -302,7 +325,7 @@ class _InvoiceDashboardScreenState
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(AppRadius.md),
       child: Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
@@ -310,18 +333,19 @@ class _InvoiceDashboardScreenState
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2B2B2B) : const Color(0xFFF4F5F7),
-                borderRadius: BorderRadius.circular(16),
+                color: isDark ? AppColors.darkBackground : AppColors.lavender.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.circular(AppRadius.xl),
               ),
-              child: Icon(icon, color: isDark ? Colors.white : Colors.black87, size: 22),
+              child: Icon(icon, color: isDark ? AppColors.jordyBlue : AppColors.yinMnBlue, size: 22),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               label,
+              textDirection: LanguageController.contentTextDirection,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: isDark ? Colors.white70 : Colors.black87,
+                color: isDark ? AppColors.lavender : AppColors.spaceCadet,
               ),
             ),
           ],
@@ -340,13 +364,13 @@ class _InvoiceDashboardScreenState
     return GestureDetector(
       onTap: () => context.push('/bill-book/invoice/${item.id}'),
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
+        margin: const EdgeInsets.only(bottom: AppSpacing.sm),
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          color: isDark ? AppColors.darkSurface : Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.xl),
           border: Border.all(
-            color: isDark ? Colors.white12 : Colors.grey.shade200,
+            color: isDark ? AppColors.darkBorder.withValues(alpha: 0.2) : AppColors.borderLight,
           ),
         ),
         child: Row(
@@ -354,16 +378,16 @@ class _InvoiceDashboardScreenState
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF2B2B2B) : Colors.grey.shade100,
-                borderRadius: BorderRadius.circular(10),
+                color: isDark ? AppColors.darkBackground : AppColors.lavender.withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child: Icon(
                 Icons.description_outlined,
                 size: 20,
-                color: isDark ? Colors.white70 : Colors.black54,
+                color: isDark ? AppColors.jordyBlue : AppColors.yinMnBlue,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,13 +397,14 @@ class _InvoiceDashboardScreenState
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
-                      color: isDark ? Colors.white : Colors.black,
+                      color: isDark ? Colors.white : AppColors.oxfordBlue,
                     ),
                   ),
                   Text(
-                    '${item.customerName ?? "Walk-in Customer"} • $issueDateStr',
+                    '${item.customerName ?? (LanguageController.isUrdu ? 'واک ان کسٹمر' : 'Walk-in Customer')} • $issueDateStr',
+                    textDirection: LanguageController.contentTextDirection,
                     style: TextStyle(
-                      color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                      color: isDark ? AppColors.lavender.withValues(alpha: 0.7) : AppColors.spaceCadet.withValues(alpha: 0.6),
                       fontSize: 12,
                     ),
                   ),
@@ -394,7 +419,7 @@ class _InvoiceDashboardScreenState
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: isDark ? Colors.white : Colors.black,
+                    color: isDark ? Colors.white : AppColors.oxfordBlue,
                   ),
                 ),
                 const SizedBox(height: 2),

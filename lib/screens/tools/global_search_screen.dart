@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:digital_khata/controller/theme_controller.dart';
 
 class GlobalSearchScreen extends StatefulWidget {
   const GlobalSearchScreen({super.key});
@@ -15,6 +16,13 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
 
   bool _isSearching = false;
   List<Map<String, dynamic>> _results = [];
+
+  // Blue Palette Constants
+  static const Color oxfordBlue = Color(0xFF192338);
+  static const Color spaceCadet = Color(0xFF1E2E4F);
+  static const Color yinMnBlue  = Color(0xFF31487A);
+  static const Color jordyBlue  = Color(0xFF8FB3E2);
+  static const Color lavender   = Color(0xFFD9E1F2);
 
   String get _userId => _client.auth.currentUser?.id ?? '';
 
@@ -41,7 +49,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           'type': 'Customer',
           'title': c['name'],
           'subtitle': c['phone'] ?? 'No phone',
-          'icon': Icons.person,
+          'icon': Icons.person_outline_rounded,
           'route': '/ledger',
         });
       }
@@ -57,7 +65,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           'type': 'Product',
           'title': p['name'],
           'subtitle': 'Price: Rs. ${p['selling_price']}',
-          'icon': Icons.inventory_2,
+          'icon': Icons.inventory_2_rounded,
           'route': '/inventory',
         });
       }
@@ -73,7 +81,7 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
           'type': 'Invoice',
           'title': 'Invoice #${i['invoice_number']}',
           'subtitle': 'Total: Rs. ${i['total']}',
-          'icon': Icons.receipt_long,
+          'icon': Icons.receipt_long_rounded,
           'route': '/bill-book',
         });
       }
@@ -89,66 +97,143 @@ class _GlobalSearchScreenState extends State<GlobalSearchScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
 
-    return Scaffold(
-      backgroundColor: isDark ? const Color(0xFF121212) : const Color(0xFFF7F8FA),
-      appBar: AppBar(
-        title: TextField(
-          controller: _searchCtrl,
-          autofocus: true,
-          style: TextStyle(color: isDark ? Colors.white : Colors.black87),
-          decoration: const InputDecoration(
-            hintText: 'Search customers, products, invoices...',
-            border: InputBorder.none,
-          ),
-          onChanged: _performGlobalSearch,
-        ),
-        actions: [
-          if (_searchCtrl.text.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.clear),
-              onPressed: () {
-                _searchCtrl.clear();
-                _performGlobalSearch('');
-              },
-            ),
-        ],
+  @override
+  Widget build(BuildContext context) {
+    final isDark = ThemeController.isDarkMode;
+
+    return Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(context).colorScheme.copyWith(primary: yinMnBlue),
+        scaffoldBackgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
       ),
-      body: _isSearching
-          ? const Center(child: CircularProgressIndicator())
-          : _results.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.search_off_rounded, size: 64, color: Colors.grey.shade400),
-                      const SizedBox(height: 12),
-                      const Text('Type to search across your whole business.', style: TextStyle(color: Colors.grey)),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _results.length,
-                  itemBuilder: (context, idx) {
-                    final item = _results[idx];
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: const Color(0xFFFF7A00).withValues(alpha: 0.15),
-                          child: Icon(item['icon'] as IconData, color: const Color(0xFFFF7A00)),
-                        ),
-                        title: Text(item['title'] as String, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('${item['type']} • ${item['subtitle']}'),
-                        trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-                        onTap: () => context.push(item['route'] as String),
-                      ),
-                    );
-                  },
+      child: Scaffold(
+        backgroundColor: isDark ? oxfordBlue : const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          elevation: 0,
+          backgroundColor: isDark ? spaceCadet : Colors.white,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: Icon(
+              Icons.chevron_left_rounded,
+              size: 28,
+              color: isDark ? jordyBlue : oxfordBlue,
+            ),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: TextField(
+            controller: _searchCtrl,
+            autofocus: true,
+            style: TextStyle(
+              color: isDark ? Colors.white : oxfordBlue,
+              fontSize: 16,
+            ),
+            decoration: InputDecoration(
+              hintText: 'Search customers, products, invoices...',
+              hintStyle: TextStyle(
+                color: isDark ? lavender.withOpacity(0.4) : Colors.grey.shade400,
+                fontSize: 15,
+              ),
+              border: InputBorder.none,
+            ),
+            onChanged: _performGlobalSearch,
+          ),
+          actions: [
+            if (_searchCtrl.text.isNotEmpty)
+              IconButton(
+                icon: Icon(Icons.clear_rounded, color: isDark ? jordyBlue : yinMnBlue),
+                onPressed: () {
+                  _searchCtrl.clear();
+                  _performGlobalSearch('');
+                },
+              ),
+          ],
+        ),
+        body: _isSearching
+            ? Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation(isDark ? jordyBlue : yinMnBlue),
                 ),
+              )
+            : _results.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 64,
+                          color: isDark ? lavender.withOpacity(0.4) : Colors.grey.shade400,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Type to search across your whole business.',
+                          style: TextStyle(
+                            color: isDark ? lavender.withOpacity(0.7) : Colors.grey.shade600,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _results.length,
+                    itemBuilder: (context, idx) {
+                      final item = _results[idx];
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: isDark ? spaceCadet.withOpacity(0.6) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isDark ? jordyBlue.withOpacity(0.15) : lavender,
+                          ),
+                        ),
+                        child: ListTile(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          leading: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: (isDark ? jordyBlue : yinMnBlue).withOpacity(0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              item['icon'] as IconData,
+                              color: isDark ? jordyBlue : yinMnBlue,
+                              size: 22,
+                            ),
+                          ),
+                          title: Text(
+                            item['title'] as String,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 15,
+                              color: isDark ? Colors.white : oxfordBlue,
+                            ),
+                          ),
+                          subtitle: Text(
+                            '${item['type']} • ${item['subtitle']}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? lavender.withOpacity(0.6) : Colors.grey.shade600,
+                            ),
+                          ),
+                          trailing: Icon(
+                            Icons.chevron_right_rounded,
+                            size: 20,
+                            color: isDark ? jordyBlue : yinMnBlue,
+                          ),
+                          onTap: () => context.push(item['route'] as String),
+                        ),
+                      );
+                    },
+                  ),
+      ),
     );
   }
 }
